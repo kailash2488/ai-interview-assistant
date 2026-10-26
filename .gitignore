@@ -1,10 +1,11 @@
 env/
 .env
-__pychache__/
+__pycache__/
 *.pyc
-node_modules/ 
+node_modules/
 .venv/
 qdrant_data/
 *.db
 .DS_Store
-
+.pytest_cache/
+backend/uploads/
