@@ -1,0 +1,89 @@
+{
+  "resumes": {
+    "backend_dev": [
+      "Python",
+      "FastAPI",
+      "Django",
+      "PostgreSQL",
+      "Docker",
+      "AWS",
+      "Celery",
+      "LangChain",
+      "Qdrant"
+    ],
+    "ml_engineer": [
+      "PyTorch",
+      "scikit-learn",
+      "Hugging Face",
+      "SQL",
+      "MLflow",
+      "Docker",
+      "Kubernetes"
+    ],
+    "fresher": [
+      "Python",
+      "JavaScript",
+      "React",
+      "SQL",
+      "Git",
+      "spaCy",
+      "Node.js",
+      "WebSockets"
+    ],
+    "devops": [
+      "Linux",
+      "Docker",
+      "Kubernetes",
+      "Terraform",
+      "Ansible",
+      "Prometheus",
+      "GitHub Actions",
+      "Jenkins",
+      "AWS"
+    ],
+    "no_headings": [
+      "React",
+      "TypeScript",
+      "Node.js",
+      "PostgreSQL"
+    ]
+  },
+  "jds": {
+    "senior_python": {
+      "must": [
+        "Python",
+        "PostgreSQL",
+        "Docker"
+      ],
+      "nice": [
+        "LangChain"
+      ]
+    },
+    "devops_engineer": {
+      "must": [
+        "AWS",
+        "Linux",
+        "Docker",
+        "Kubernetes",
+        "Terraform",
+        "Ansible"
+      ],
+      "nice": [
+        "Prometheus",
+        "Grafana"
+      ]
+    },
+    "ml_engineer": {
+      "must": [
+        "Python",
+        "PyTorch",
+        "Hugging Face",
+        "SQL"
+      ],
+      "nice": [
+        "MLflow",
+        "Kubernetes"
+      ]
+    }
+  }
+}

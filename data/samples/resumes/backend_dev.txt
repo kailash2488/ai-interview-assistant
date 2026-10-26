@@ -1,0 +1,23 @@
+Asha Verma
+asha.verma@example.com | +91 90000 00001
+
+SUMMARY
+Backend engineer with 5 years of experience building Python APIs.
+
+EXPERIENCE
+Senior Software Engineer, Acme Corp (2021 - Present)
+• Built FastAPI microservices handling 2M requests per day
+• Reduced p95 latency by 40% through query tuning
+
+Software Engineer, Beta Labs (2019 - 2021)
+• Developed Django REST APIs and Celery workers
+
+PROJECTS
+Interview Bot - Python, LangChain, Qdrant
+• Built a RAG chatbot over internal documents
+
+SKILLS
+Python, FastAPI, Django, PostgreSQL, Docker, AWS
+
+EDUCATION
+B.Tech Computer Science, 2019

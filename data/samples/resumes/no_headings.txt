@@ -1,0 +1,4 @@
+Meera Iyer is a full stack developer with four years of experience.
+She has worked with React, TypeScript, Node.js and PostgreSQL across
+several startups, shipping customer facing dashboards and internal tools.
+Contact: meera@example.com

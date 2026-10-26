@@ -30,6 +30,9 @@ class InterviewSession(Base):
     documents: Mapped[list["Document"]] = relationship(
         back_populates="session", cascade="all, delete-orphan", order_by="Document.created_at"
     )
+    analysis: Mapped["SessionAnalysis | None"] = relationship(
+        back_populates="session", cascade="all, delete-orphan", uselist=False
+    )
 
 
 class Document(Base):
@@ -47,3 +50,25 @@ class Document(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     session: Mapped[InterviewSession] = relationship(back_populates="documents")
+
+
+class SessionAnalysis(Base):
+    """Profile, JD requirements and gap analysis for a session (one row per session)."""
+
+    __tablename__ = "analyses"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    session_id: Mapped[str] = mapped_column(
+        ForeignKey("sessions.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    status: Mapped[str] = mapped_column(String(20), default="running")  # running | ready | failed
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    user_edited: Mapped[bool] = mapped_column(default=False)
+    warnings_json: Mapped[list] = mapped_column(JSON, default=list)
+    profile_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    requirements_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    gap_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+    session: Mapped[InterviewSession] = relationship(back_populates="analysis")

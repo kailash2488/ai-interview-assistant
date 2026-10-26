@@ -1,0 +1,15 @@
+Senior Python Developer
+
+About
+We are building an AI platform for hiring.
+
+Responsibilities
+- Design and build FastAPI services
+- Work with LLM pipelines and vector databases
+
+Requirements
+- 4+ years of Python
+- Experience with PostgreSQL and Docker
+
+Nice to have
+- Experience with LangChain

@@ -14,10 +14,13 @@ dependencies = [
     "pdfplumber",
     "python-docx",
     "python-multipart",
+    "httpx",
+    "qdrant-client",
+    "langchain-text-splitters",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "httpx"]
+dev = ["pytest"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

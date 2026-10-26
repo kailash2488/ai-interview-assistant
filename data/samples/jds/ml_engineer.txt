@@ -1,0 +1,19 @@
+Machine Learning Engineer - NLP
+
+About
+Our team builds language models for customer support.
+
+Responsibilities
+- Fine-tune and evaluate transformer models
+- Deploy models to production
+- Collaborate closely with product managers
+
+Requirements
+- Strong Python and PyTorch
+- Experience with Hugging Face Transformers
+- Solid SQL
+
+Nice to have
+- MLflow
+- Kubernetes
+- Strong written communication

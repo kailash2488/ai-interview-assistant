@@ -1,0 +1,19 @@
+Rohan Mehta
+rohan@example.com
+
+Professional Summary
+Machine learning engineer focused on NLP and LLM applications.
+
+Work Experience
+ML Engineer - Gamma AI (2022 - Present)
+- Fine-tuned transformer models for classification
+- Deployed models with Docker and Kubernetes
+
+Technical Skills:
+PyTorch, scikit-learn, Hugging Face, SQL, MLflow
+
+Education
+M.Sc. Data Science, 2022
+
+Certifications
+AWS Certified Machine Learning Specialty

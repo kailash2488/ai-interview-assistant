@@ -1,3 +1,4 @@
+import logging
 import shutil
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,6 +9,9 @@ from app.core.config import settings
 from app.core.db import get_db
 from app.models import InterviewSession
 from app.schemas.session import SessionCreate, SessionOut
+from app.services import vectorstore
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -43,3 +47,7 @@ def delete_session(session_id: str, db: Session = Depends(get_db)):
     db.delete(obj)
     db.commit()
     shutil.rmtree(settings.upload_dir / session_id, ignore_errors=True)
+    try:
+        vectorstore.delete_session(session_id)
+    except Exception:
+        log.warning("Could not delete vectors for session %s", session_id, exc_info=True)

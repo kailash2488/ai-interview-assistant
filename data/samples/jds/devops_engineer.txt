@@ -1,0 +1,17 @@
+DevOps Engineer
+
+About
+We run a SaaS product on AWS and want to automate everything.
+
+Responsibilities
+- Maintain CI/CD pipelines
+- Manage cloud infrastructure as code
+- Monitor production systems
+
+Requirements
+- 3+ years with AWS and Linux
+- Hands-on Docker and Kubernetes
+- Terraform or Ansible
+
+Nice to have
+- Prometheus and Grafana experience

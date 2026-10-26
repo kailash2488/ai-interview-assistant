@@ -1,0 +1,13 @@
+Karan Singh
+karan@example.com
+
+EXPERIENCE
+DevOps Engineer, Delta Systems (2018 - Present)
+* Managed CI/CD pipelines with GitHub Actions and Jenkins
+* Provisioned infrastructure with Terraform on AWS
+
+SKILLS
+Linux, Docker, Kubernetes, Terraform, Ansible, Prometheus
+
+EDUCATION
+B.Sc. Computer Science, 2018

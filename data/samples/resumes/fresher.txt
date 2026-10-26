@@ -1,0 +1,20 @@
+PRIYA NAIR
+priya.nair@example.com
+
+OBJECTIVE
+Fresher looking for a software engineering role in AI.
+
+EDUCATION
+B.E. Information Technology, 2025, CGPA 8.7
+
+PROJECTS
+Resume Parser - Python, spaCy
+- Extracted skills from resumes with 90% accuracy
+Chat App - React, Node.js
+- Real-time chat using WebSockets
+
+SKILLS
+Python, JavaScript, React, SQL, Git
+
+ACHIEVEMENTS
+Winner, college hackathon 2024

@@ -1,3 +1,3 @@
-from app.models.interview_session import Document, InterviewSession
+from app.models.interview_session import Document, InterviewSession, SessionAnalysis
 
-__all__ = ["Document", "InterviewSession"]
+__all__ = ["Document", "InterviewSession", "SessionAnalysis"]

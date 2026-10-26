@@ -36,6 +36,53 @@ export interface DocumentDetail extends DocumentItem {
   sections_json: Array<{ name: string; text: string }> | null
 }
 
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'unknown'
+export interface SkillItem {
+  name: string
+  level: SkillLevel
+  evidence: string
+}
+export interface CandidateProfile {
+  name: string | null
+  total_experience_years: number | null
+  current_role: string | null
+  skills: SkillItem[]
+  employers: Array<{ company: string; role: string; duration: string }>
+  projects: Array<{ title: string; tech_stack: string[]; claimed_outcome: string }>
+  education: string[]
+  certifications: string[]
+}
+export interface JDRequirements {
+  role_title: string | null
+  seniority: string
+  must_have_skills: string[]
+  nice_to_have_skills: string[]
+  responsibilities: string[]
+  domain: string
+  soft_skills: string[]
+}
+export interface GapAnalysis {
+  matched_skills: string[]
+  gaps: string[]
+  nice_to_have_matched: string[]
+  nice_to_have_missing: string[]
+  claims_to_probe: Array<{ text: string; reason: string }>
+  strengths: string[]
+  match_percent: number | null
+}
+export interface Analysis {
+  session_id: string
+  status: 'running' | 'ready' | 'failed'
+  error: string | null
+  model: string | null
+  user_edited: boolean
+  warnings: string[]
+  profile: CandidateProfile | null
+  requirements: JDRequirements | null
+  gap: GapAnalysis | null
+  updated_at: string
+}
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -85,6 +132,18 @@ export const api = {
     form.append('file', file)
     return request<DocumentItem>(`/sessions/${sid}/documents`, { method: 'POST', body: form })
   },
+  analyze: (sid: string) => request<Analysis>(`/sessions/${sid}/analyze`, { method: 'POST' }),
+  /** Resolves to null when no analysis has been started yet. */
+  getAnalysis: async (sid: string): Promise<Analysis | null> => {
+    try {
+      return await request<Analysis>(`/sessions/${sid}/analysis`)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null
+      throw e
+    }
+  },
+  patchAnalysis: (sid: string, body: { profile?: CandidateProfile; requirements?: JDRequirements }) =>
+    request<Analysis>(`/sessions/${sid}/analysis`, { ...json(body), method: 'PATCH' }),
   deleteDocument: (sid: string, did: string) =>
     request<void>(`/sessions/${sid}/documents/${did}`, { method: 'DELETE' }),
 }

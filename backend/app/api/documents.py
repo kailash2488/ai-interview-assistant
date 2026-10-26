@@ -1,3 +1,4 @@
+import logging
 import uuid
 from pathlib import Path
 
@@ -11,8 +12,10 @@ from app.core.db import get_db
 from app.models import Document
 from app.schemas.document import DocumentDetail, DocumentKind, DocumentOut
 from app.services.ingestion.parsers import ALLOWED_EXTENSIONS, ParseError, validate_signature
+from app.services import vectorstore
 from app.services.ingestion.pipeline import process_document
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/sessions/{session_id}/documents", tags=["documents"])
 
 SINGLETON_KINDS = {DocumentKind.resume.value, DocumentKind.jd.value}
@@ -89,3 +92,7 @@ def delete_document(session_id: str, document_id: str, db: Session = Depends(get
     Path(doc.stored_path).unlink(missing_ok=True)
     db.delete(doc)
     db.commit()
+    try:
+        vectorstore.delete_document(document_id)
+    except Exception:
+        log.warning("Could not delete vectors for document %s", document_id, exc_info=True)

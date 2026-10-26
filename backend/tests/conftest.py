@@ -5,6 +5,7 @@ from pathlib import Path
 _tmp = Path(tempfile.mkdtemp(prefix="aia-tests-"))
 os.environ["AIA_DATABASE_URL"] = f"sqlite:///{_tmp / 'test.db'}"
 os.environ["AIA_UPLOAD_DIR"] = str(_tmp / "uploads")
+os.environ["AIA_QDRANT_PATH"] = ":memory:"
 
 import fitz  # noqa: E402
 import pytest  # noqa: E402
@@ -13,11 +14,15 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app.core.db import Base, engine  # noqa: E402
 from app.main import app  # noqa: E402
+from app.services.vectorstore import COLLECTION, get_client  # noqa: E402
 
 
 @pytest.fixture()
 def client():
     Base.metadata.drop_all(engine)
+    store = get_client()
+    if store.collection_exists(COLLECTION):
+        store.delete_collection(COLLECTION)
     with TestClient(app) as c:  # lifespan creates tables
         yield c
 

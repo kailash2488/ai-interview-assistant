@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { DocumentSlot } from '../components/DocumentSlot'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -10,6 +10,8 @@ const isPending = (d: DocumentItem) => d.status === 'uploaded' || d.status === '
 
 export function Upload() {
   const { sessionId = '' } = useParams()
+  const navigate = useNavigate()
+  const [starting, setStarting] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
   const [docs, setDocs] = useState<DocumentItem[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -50,6 +52,18 @@ export function Upload() {
     )
   }
 
+  async function startAnalysis() {
+    setStarting(true)
+    try {
+      const existing = await api.getAnalysis(sessionId)
+      if (!existing || existing.status === 'failed') await api.analyze(sessionId)
+      navigate(`/sessions/${sessionId}/analysis`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not start analysis')
+      setStarting(false)
+    }
+  }
+
   const byKind = (kind: DocumentItem['kind']) => docs.filter((d) => d.kind === kind)
   const ready = (kind: DocumentItem['kind']) => byKind(kind).some((d) => d.status === 'ready')
   const canContinue = ready('resume') && ready('jd')
@@ -71,6 +85,12 @@ export function Upload() {
           </div>
         )}
       </div>
+
+      {error && session && (
+        <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
 
       <DocumentSlot {...common} kind="resume" title="Resume" required description="The candidate's resume." documents={byKind('resume')} />
       <DocumentSlot
@@ -94,11 +114,11 @@ export function Upload() {
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
         <p className="text-sm text-slate-600">
           {canContinue
-            ? 'Both required documents are ready. Analysis arrives in Phase 2.'
+            ? 'Both required documents are ready.'
             : 'Upload a resume and a job description and wait for both to show Ready.'}
         </p>
-        <Button disabled title="Available in Phase 2">
-          Analyse documents
+        <Button disabled={!canContinue || starting} onClick={startAnalysis}>
+          {starting ? 'Starting…' : 'Analyse documents'}
         </Button>
       </div>
     </div>
