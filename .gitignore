@@ -1,0 +1,10 @@
+env/
+.env
+__pychache__/
+*.pyc
+node_modules/ 
+.venv/
+qdrant_data/
+*.db
+.DS_Store
+
