@@ -83,6 +83,59 @@ export interface Analysis {
   updated_at: string
 }
 
+export type Category = 'intro' | 'core' | 'project' | 'gap' | 'behavioural' | 'closing'
+export interface PlanTopic {
+  index: number
+  category: Category
+  topic: string
+  difficulty: string
+}
+export interface Plan {
+  session_id: string
+  topics: PlanTopic[]
+  followup_budget: number
+}
+export interface Turn {
+  question_id: string
+  order_no: number
+  topic: string
+  ack: string
+  text: string
+  is_follow_up: boolean
+  answer: string | null
+}
+export interface InterviewState {
+  session_id: string
+  status: string
+  main_total: number
+  main_asked: number
+  turns: Turn[]
+}
+
+export type ServerMessage =
+  | ({ type: 'state' } & InterviewState)
+  | { type: 'thinking' }
+  | { type: 'token'; text: string }
+  | {
+      type: 'question'
+      question_id: string
+      order_no: number
+      topic: string
+      text: string
+      ack: string
+      is_follow_up: boolean
+      replay: boolean
+      progress: { main_asked: number; main_total: number }
+    }
+  | { type: 'complete'; message: string }
+  | { type: 'error'; message: string; retryable: boolean }
+
+/** WebSocket URL for a backend path, following the same base as REST calls. */
+export function wsUrl(path: string): string {
+  const base = BASE.startsWith('http') ? BASE : `${window.location.origin}${BASE}`
+  return `${base.replace(/^http/, 'ws')}${path}`
+}
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -144,6 +197,16 @@ export const api = {
   },
   patchAnalysis: (sid: string, body: { profile?: CandidateProfile; requirements?: JDRequirements }) =>
     request<Analysis>(`/sessions/${sid}/analysis`, { ...json(body), method: 'PATCH' }),
+  createPlan: (sid: string) => request<Plan>(`/sessions/${sid}/plan`, { method: 'POST' }),
+  getPlan: async (sid: string): Promise<Plan | null> => {
+    try {
+      return await request<Plan>(`/sessions/${sid}/plan`)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null
+      throw e
+    }
+  },
+  getInterview: (sid: string) => request<InterviewState>(`/sessions/${sid}/interview`),
   deleteDocument: (sid: string, did: string) =>
     request<void>(`/sessions/${sid}/documents/${did}`, { method: 'DELETE' }),
 }

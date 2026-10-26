@@ -1,3 +1,10 @@
-from app.models.interview_session import Document, InterviewSession, SessionAnalysis
+from app.models.interview_session import (
+    Answer,
+    Document,
+    InterviewPlanRow,
+    InterviewSession,
+    Question,
+    SessionAnalysis,
+)
 
-__all__ = ["Document", "InterviewSession", "SessionAnalysis"]
+__all__ = ["Answer", "Document", "InterviewPlanRow", "InterviewSession", "Question", "SessionAnalysis"]

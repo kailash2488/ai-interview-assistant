@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ChipList } from '../components/ChipList'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
-import { api, type Analysis as AnalysisData, type CandidateProfile, type JDRequirements } from '../lib/api'
+import { api, ApiError, type Analysis as AnalysisData, type CandidateProfile, type JDRequirements } from '../lib/api'
 
 const POLL_MS = 2000
 
 export function Analysis() {
   const { sessionId = '' } = useParams()
+  const navigate = useNavigate()
   const [analysis, setAnalysis] = useState<AnalysisData | null | undefined>(undefined)
   const [profile, setProfile] = useState<CandidateProfile | null>(null)
   const [reqs, setReqs] = useState<JDRequirements | null>(null)
@@ -47,6 +48,20 @@ export function Analysis() {
       adopt(await api.analyze(sessionId))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not start analysis')
+    }
+  }
+
+  async function buildPlan() {
+    setError(null)
+    try {
+      await api.createPlan(sessionId)
+      navigate(`/sessions/${sessionId}/plan`)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409 && (await api.getPlan(sessionId))) {
+        navigate(`/sessions/${sessionId}/plan`) // interview already started: the plan is fixed
+      } else {
+        setError(e instanceof Error ? e.message : 'Could not build the plan')
+      }
     }
   }
 
@@ -196,7 +211,7 @@ export function Analysis() {
                 Re-run analysis
               </Button>
             </div>
-            <Button variant="secondary" disabled title="Available in Phase 3">
+            <Button onClick={buildPlan} disabled={dirty || saving} title={dirty ? 'Save your changes first' : undefined}>
               Build interview plan
             </Button>
           </div>

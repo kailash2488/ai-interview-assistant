@@ -33,6 +33,12 @@ class InterviewSession(Base):
     analysis: Mapped["SessionAnalysis | None"] = relationship(
         back_populates="session", cascade="all, delete-orphan", uselist=False
     )
+    plan: Mapped["InterviewPlanRow | None"] = relationship(
+        back_populates="session", cascade="all, delete-orphan", uselist=False
+    )
+    questions: Mapped[list["Question"]] = relationship(
+        cascade="all, delete-orphan", order_by="Question.order_no"
+    )
 
 
 class Document(Base):
@@ -72,3 +78,45 @@ class SessionAnalysis(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
 
     session: Mapped[InterviewSession] = relationship(back_populates="analysis")
+
+
+class InterviewPlanRow(Base):
+    __tablename__ = "interview_plans"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    session_id: Mapped[str] = mapped_column(ForeignKey("sessions.id", ondelete="CASCADE"), unique=True, index=True)
+    plan_json: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    session: Mapped[InterviewSession] = relationship(back_populates="plan")
+
+
+class Question(Base):
+    __tablename__ = "questions"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    session_id: Mapped[str] = mapped_column(ForeignKey("sessions.id", ondelete="CASCADE"), index=True)
+    order_no: Mapped[int] = mapped_column(Integer)
+    plan_index: Mapped[int] = mapped_column(Integer)
+    topic: Mapped[str] = mapped_column(String(200))
+    text: Mapped[str] = mapped_column(Text)
+    ack: Mapped[str] = mapped_column(String(200), default="")
+    is_follow_up: Mapped[bool] = mapped_column(default=False)
+    parent_question_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    answer: Mapped["Answer | None"] = relationship(back_populates="question", cascade="all, delete-orphan", uselist=False)
+
+
+class Answer(Base):
+    __tablename__ = "answers"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    question_id: Mapped[str] = mapped_column(ForeignKey("questions.id", ondelete="CASCADE"), unique=True, index=True)
+    text: Mapped[str] = mapped_column(Text)
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Quick per-answer analysis used for flow control; never sent to the candidate during the interview.
+    analysis_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    question: Mapped[Question] = relationship(back_populates="answer")

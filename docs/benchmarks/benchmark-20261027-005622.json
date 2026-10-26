@@ -1,0 +1,69 @@
+[
+  {
+    "model": "qwen2.5:7b",
+    "valid_rate": 1.0,
+    "avg_recall": 0.9131944444444444,
+    "avg_seconds": 59.641467839479446,
+    "rows": [
+      {
+        "kind": "resume",
+        "name": "backend_dev",
+        "valid": true,
+        "recall": 0.8888888888888888,
+        "seconds": 139.3926601409912
+      },
+      {
+        "kind": "resume",
+        "name": "ml_engineer",
+        "valid": true,
+        "recall": 1.0,
+        "seconds": 62.452494621276855
+      },
+      {
+        "kind": "resume",
+        "name": "fresher",
+        "valid": true,
+        "recall": 0.875,
+        "seconds": 79.31072211265564
+      },
+      {
+        "kind": "resume",
+        "name": "devops",
+        "valid": true,
+        "recall": 0.6666666666666666,
+        "seconds": 63.81822156906128
+      },
+      {
+        "kind": "resume",
+        "name": "no_headings",
+        "valid": true,
+        "recall": 1.0,
+        "seconds": 41.36871695518494
+      },
+      {
+        "kind": "jd",
+        "name": "senior_python",
+        "valid": true,
+        "recall": 1.0,
+        "seconds": 39.35839128494263,
+        "tech_in_soft_skills": false
+      },
+      {
+        "kind": "jd",
+        "name": "devops_engineer",
+        "valid": true,
+        "recall": 1.0,
+        "seconds": 25.536332607269287,
+        "tech_in_soft_skills": false
+      },
+      {
+        "kind": "jd",
+        "name": "ml_engineer",
+        "valid": true,
+        "recall": 0.875,
+        "seconds": 25.894203424453735,
+        "tech_in_soft_skills": false
+      }
+    ]
+  }
+]

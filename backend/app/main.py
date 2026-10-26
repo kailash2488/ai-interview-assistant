@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analysis, documents, sessions
+from app.api import analysis, documents, interview, sessions
 from app.core.config import settings
 from app.core.db import init_db
 
@@ -25,6 +25,7 @@ app.add_middleware(
 app.include_router(sessions.router)
 app.include_router(documents.router)
 app.include_router(analysis.router)
+app.include_router(interview.router)
 
 
 @app.get("/health", tags=["meta"])

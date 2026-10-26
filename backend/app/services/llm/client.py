@@ -1,6 +1,7 @@
 """Thin Ollama client: structured (JSON-schema) chat with validation + retry, and embeddings."""
 import json
 import logging
+from collections.abc import Iterator
 from typing import Protocol, TypeVar
 
 import httpx
@@ -26,8 +27,13 @@ class LLMInvalidOutput(LLMError):
 
 class LLMClient(Protocol):
     def chat_json(
-        self, *, system: str, user: str, schema: type[T], model: str | None = None, temperature: float = 0.1
+        self, *, system: str, user: str, schema: type[T], model: str | None = None, temperature: float = 0.1,
+        max_tokens: int | None = None,
     ) -> T: ...
+
+    def stream_text(
+        self, *, system: str, user: str, model: str | None = None, temperature: float = 0.6, max_tokens: int | None = None
+    ) -> Iterator[str]: ...
 
     def embed(self, texts: list[str]) -> list[list[float]]: ...
 
@@ -51,7 +57,8 @@ class OllamaClient:
         return res.json()
 
     def chat_json(
-        self, *, system: str, user: str, schema: type[T], model: str | None = None, temperature: float = 0.1
+        self, *, system: str, user: str, schema: type[T], model: str | None = None, temperature: float = 0.1,
+        max_tokens: int | None = None,
     ) -> T:
         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
         last_error = ""
@@ -63,7 +70,7 @@ class OllamaClient:
                     "messages": messages,
                     "stream": False,
                     "format": schema.model_json_schema(),
-                    "options": {"temperature": temperature, "num_ctx": settings.llm_num_ctx},
+                    "options": self._options(temperature, max_tokens),
                 },
             )
             content = data.get("message", {}).get("content", "")
@@ -81,6 +88,43 @@ class OllamaClient:
                     },
                 ]
         raise LLMInvalidOutput(f"The model returned invalid output after retrying: {last_error}")
+
+    @staticmethod
+    def _options(temperature: float, max_tokens: int | None) -> dict:
+        options: dict = {"temperature": temperature, "num_ctx": settings.llm_num_ctx}
+        if max_tokens:
+            options["num_predict"] = max_tokens
+        return options
+
+    def stream_text(
+        self, *, system: str, user: str, model: str | None = None, temperature: float = 0.6, max_tokens: int | None = None
+    ) -> Iterator[str]:
+        """Yield text pieces as the model produces them (for live token streaming)."""
+        payload = {
+            "model": model or settings.interviewer_model,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            "stream": True,
+            "options": self._options(temperature, max_tokens),
+        }
+        try:
+            with httpx.stream("POST", f"{self.base_url}/api/chat", json=payload, timeout=self.timeout) as res:
+                if res.status_code == 404:
+                    raise LLMUnavailable(f"Model '{payload['model']}' is not installed. Run: ollama pull {payload['model']}")
+                if res.status_code >= 400:
+                    raise LLMError(f"Ollama returned HTTP {res.status_code}")
+                for line in res.iter_lines():
+                    if not line:
+                        continue
+                    chunk = json.loads(line)
+                    piece = chunk.get("message", {}).get("content", "")
+                    if piece:
+                        yield piece
+                    if chunk.get("done"):
+                        return
+        except httpx.ConnectError as exc:
+            raise LLMUnavailable(f"Cannot reach Ollama at {self.base_url}. Is it running?") from exc
+        except httpx.TimeoutException as exc:
+            raise LLMUnavailable("Ollama took too long to respond") from exc
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         if not texts:
