@@ -1,0 +1,106 @@
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { DocumentSlot } from '../components/DocumentSlot'
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { api, ApiError, type DocumentItem, type Session } from '../lib/api'
+
+const POLL_MS = 1000
+const isPending = (d: DocumentItem) => d.status === 'uploaded' || d.status === 'parsing'
+
+export function Upload() {
+  const { sessionId = '' } = useParams()
+  const [session, setSession] = useState<Session | null>(null)
+  const [docs, setDocs] = useState<DocumentItem[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    try {
+      setDocs(await api.listDocuments(sessionId))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load documents')
+    }
+  }, [sessionId])
+
+  useEffect(() => {
+    api
+      .getSession(sessionId)
+      .then(setSession)
+      .catch((e) => setError(e instanceof ApiError && e.status === 404 ? 'Session not found' : e.message))
+    void refresh()
+  }, [sessionId, refresh])
+
+  const anyPending = docs.some(isPending)
+  useEffect(() => {
+    if (!anyPending) return
+    const t = setInterval(() => void refresh(), POLL_MS)
+    return () => clearInterval(t)
+  }, [anyPending, refresh])
+
+  if (error && !session) {
+    return (
+      <div className="space-y-4">
+        <p role="alert" className="text-red-700">
+          {error}
+        </p>
+        <Link to="/" className="text-brand-600 underline">
+          Back to home
+        </Link>
+      </div>
+    )
+  }
+
+  const byKind = (kind: DocumentItem['kind']) => docs.filter((d) => d.kind === kind)
+  const ready = (kind: DocumentItem['kind']) => byKind(kind).some((d) => d.status === 'ready')
+  const canContinue = ready('resume') && ready('jd')
+  const common = { sessionId, onChanged: () => void refresh() }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Link to="/" className="text-sm text-slate-500 hover:underline">
+          ← All interviews
+        </Link>
+        <h1 className="mt-1 text-2xl font-semibold">{session?.title ?? 'Loading…'}</h1>
+        {session && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+            <span>{session.target_role}</span>
+            <Badge>{session.interview_type}</Badge>
+            <Badge>{session.difficulty}</Badge>
+            <Badge>{session.question_count} questions</Badge>
+          </div>
+        )}
+      </div>
+
+      <DocumentSlot {...common} kind="resume" title="Resume" required description="The candidate's resume." documents={byKind('resume')} />
+      <DocumentSlot
+        {...common}
+        kind="jd"
+        title="Job description"
+        required
+        allowPaste
+        description="Upload the JD or paste its text."
+        documents={byKind('jd')}
+      />
+      <DocumentSlot
+        {...common}
+        kind="other"
+        title="Extra documents"
+        multiple
+        description="Optional: project descriptions, company notes, past feedback."
+        documents={byKind('other')}
+      />
+
+      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
+        <p className="text-sm text-slate-600">
+          {canContinue
+            ? 'Both required documents are ready. Analysis arrives in Phase 2.'
+            : 'Upload a resume and a job description and wait for both to show Ready.'}
+        </p>
+        <Button disabled title="Available in Phase 2">
+          Analyse documents
+        </Button>
+      </div>
+    </div>
+  )
+}

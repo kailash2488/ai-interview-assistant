@@ -11,14 +11,18 @@ The full plan is in [docs/SOP.pdf](docs/SOP.pdf).
 | Phase | Scope | State |
 |---|---|---|
 | 0 | Planning, repository | Done |
-| 1 | Foundation and document ingestion | Backend done; React upload screen pending |
+| 1 | Foundation and document ingestion | Done |
 | 2 | LLM analysis (Ollama, profile/JD extraction, gap analysis) | Not started |
 | 3 | Interview plan and text interview | Not started |
 | 4 | Feedback and report | Not started |
 | 5 | History, polish, hardening | Not started |
 | 6 | Voice mode (optional) | Not started |
 
-## Backend quick start
+## Quick start
+
+Run the backend and frontend in two terminals, then open http://localhost:5173.
+
+### Backend
 
 ```bash
 cd backend
@@ -28,13 +32,28 @@ uvicorn app.main:app --reload      # http://localhost:8000/docs
 pytest
 ```
 
-Or with Docker: `docker compose up --build`.
+Or with Docker: `docker compose up --build` (backend only for now).
+
+### Frontend
+
+Needs Node 20 or later.
+
+```bash
+cd frontend
+npm install
+npm run dev      # http://localhost:5173, proxies /api to the backend on port 8000
+npm test
+```
+
+The repo includes `frontend/.npmrc` with `legacy-peer-deps=true`, which works around an npm 10 peer-dependency resolver crash.
 
 ### What works now
 
-- `POST /sessions`, `GET /sessions`, `GET /sessions/{id}`, `DELETE /sessions/{id}`
-- `POST /sessions/{id}/documents` (multipart: `kind` = resume | jd | other, and `file`), `GET` list and detail, `DELETE`
-- PDF (PyMuPDF with pdfplumber fallback), DOCX and TXT parsing, cleaning and section detection
+- Web UI: create a session, drag-and-drop or paste a resume, JD and extra documents, watch each file go Uploaded → Parsing → Ready, and view the extracted text and detected sections
+- API:
+  - `POST /sessions`, `GET /sessions`, `GET /sessions/{id}`, `DELETE /sessions/{id}`
+  - `POST /sessions/{id}/documents` (multipart: `kind` = resume | jd | other, and `file`), `GET` list and detail, `DELETE`
+- Parsing: PDF (PyMuPDF with pdfplumber fallback), DOCX and TXT parsing, cleaning and section detection
 - Parsing runs in the background. Each document moves through `uploaded`, `parsing`, then `ready` or `failed`.
 
 Settings come from environment variables prefixed `AIA_`, for example `AIA_MAX_UPLOAD_MB`.

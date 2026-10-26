@@ -1,0 +1,90 @@
+const BASE = import.meta.env.VITE_API_URL ?? '/api'
+
+export type InterviewType = 'technical' | 'behavioural' | 'mixed'
+export type Difficulty = 'easy' | 'medium' | 'hard'
+export type DocumentKind = 'resume' | 'jd' | 'other'
+export type DocumentStatus = 'uploaded' | 'parsing' | 'ready' | 'failed'
+
+export interface Session {
+  id: string
+  title: string
+  target_role: string
+  interview_type: InterviewType
+  difficulty: Difficulty
+  question_count: number
+  status: string
+  created_at: string
+}
+
+export type SessionCreate = Pick<
+  Session,
+  'title' | 'target_role' | 'interview_type' | 'difficulty' | 'question_count'
+>
+
+export interface DocumentItem {
+  id: string
+  session_id: string
+  kind: DocumentKind
+  filename: string
+  status: DocumentStatus
+  error: string | null
+  created_at: string
+}
+
+export interface DocumentDetail extends DocumentItem {
+  raw_text: string | null
+  sections_json: Array<{ name: string; text: string }> | null
+}
+
+export class ApiError extends Error {
+  status: number
+  constructor(status: number, message: string) {
+    super(message)
+    this.status = status
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  let res: Response
+  try {
+    res = await fetch(`${BASE}${path}`, init)
+  } catch {
+    throw new ApiError(0, 'Cannot reach the backend. Is it running on port 8000?')
+  }
+  if (!res.ok) {
+    let message = res.statusText
+    try {
+      const body = await res.json()
+      if (typeof body.detail === 'string') message = body.detail
+      else if (Array.isArray(body.detail)) message = body.detail.map((d: { msg: string }) => d.msg).join('; ')
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new ApiError(res.status, message)
+  }
+  return res.status === 204 ? (undefined as T) : ((await res.json()) as T)
+}
+
+const json = (body: unknown): RequestInit => ({
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+})
+
+export const api = {
+  listSessions: () => request<Session[]>('/sessions'),
+  getSession: (id: string) => request<Session>(`/sessions/${id}`),
+  createSession: (payload: SessionCreate) => request<Session>('/sessions', json(payload)),
+  deleteSession: (id: string) => request<void>(`/sessions/${id}`, { method: 'DELETE' }),
+
+  listDocuments: (sid: string) => request<DocumentItem[]>(`/sessions/${sid}/documents`),
+  getDocument: (sid: string, did: string) => request<DocumentDetail>(`/sessions/${sid}/documents/${did}`),
+  uploadDocument: (sid: string, kind: DocumentKind, file: File) => {
+    const form = new FormData()
+    form.append('kind', kind)
+    form.append('file', file)
+    return request<DocumentItem>(`/sessions/${sid}/documents`, { method: 'POST', body: form })
+  },
+  deleteDocument: (sid: string, did: string) =>
+    request<void>(`/sessions/${sid}/documents/${did}`, { method: 'DELETE' }),
+}
