@@ -40,6 +40,8 @@ def _facts(profile: CandidateProfile, item: PlanItem) -> str:
 
 def _context(session_id: str, item: PlanItem, llm: LLMClient) -> str:
     """Top resume/document chunks for the topic. Retrieval problems never break the interview."""
+    if not getattr(llm, "supports_embeddings", True):
+        return "(none)"
     try:
         vector = llm.embed([f"{item.topic}. {item.goal}"])[0]
         hits = vectorstore.search(session_id, vector, limit=3)

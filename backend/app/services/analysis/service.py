@@ -47,10 +47,11 @@ def run_analysis(session_id: str) -> None:
             row.profile_json = profile.model_dump(mode="json")
             row.requirements_json = requirements.model_dump(mode="json")
             row.gap_json = analyse_gap(profile, requirements, resume).model_dump(mode="json")
-            row.model, row.status, row.error = settings.evaluator_model, "ready", None
+            row.model, row.status, row.error = getattr(llm, "model_name", settings.evaluator_model), "ready", None
             warnings: list[str] = []
             try:
-                vectorstore.index_session(session_id, indexable, llm)
+                if getattr(llm, "supports_embeddings", True):
+                    vectorstore.index_session(session_id, indexable, llm)
             except Exception as exc:  # embeddings are an enhancement; analysis stays usable without them
                 log.warning("Indexing failed for session %s: %s", session_id, exc)
                 warnings.append(f"Documents were not indexed for retrieval: {exc}")

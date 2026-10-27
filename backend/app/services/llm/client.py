@@ -39,6 +39,12 @@ class LLMClient(Protocol):
 
 
 class OllamaClient:
+    supports_embeddings = True
+
+    @property
+    def model_name(self) -> str:
+        return settings.evaluator_model
+
     def __init__(self, base_url: str | None = None, timeout: float | None = None):
         self.base_url = (base_url or settings.ollama_url).rstrip("/")
         self.timeout = timeout or settings.llm_timeout_seconds
@@ -137,4 +143,8 @@ class OllamaClient:
 
 
 def get_llm() -> LLMClient:
+    if settings.llm_provider == "gemini":
+        from app.services.llm.gemini import GeminiClient
+
+        return GeminiClient()
     return OllamaClient()

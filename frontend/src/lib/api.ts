@@ -136,6 +136,30 @@ export function wsUrl(path: string): string {
   return `${base.replace(/^http/, 'ws')}${path}`
 }
 
+export type Provider = 'ollama' | 'gemini'
+export interface GeminiModel {
+  id: string
+  label: string
+  note: string
+  tier: 'free' | 'paid'
+}
+export interface LLMSettings {
+  provider: Provider
+  gemini_model: string
+  gemini_models: GeminiModel[]
+  gemini_key_set: boolean
+  gemini_key_hint: string | null
+  gemini_key_source: 'settings' | 'environment' | 'none'
+  ollama_model: string
+}
+export interface LLMTestResult {
+  ok: boolean
+  provider: string
+  model: string | null
+  seconds: number | null
+  message: string
+}
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -197,6 +221,11 @@ export const api = {
   },
   patchAnalysis: (sid: string, body: { profile?: CandidateProfile; requirements?: JDRequirements }) =>
     request<Analysis>(`/sessions/${sid}/analysis`, { ...json(body), method: 'PATCH' }),
+  getLLMSettings: () => request<LLMSettings>('/settings/llm'),
+  saveLLMSettings: (body: { provider: Provider; gemini_model: string; gemini_api_key?: string }) =>
+    request<LLMSettings>('/settings/llm', { ...json(body), method: 'PUT' }),
+  removeGeminiKey: () => request<LLMSettings>('/settings/llm/key', { method: 'DELETE' }),
+  testLLM: () => request<LLMTestResult>('/settings/llm/test', { method: 'POST' }),
   createPlan: (sid: string) => request<Plan>(`/sessions/${sid}/plan`, { method: 'POST' }),
   getPlan: async (sid: string): Promise<Plan | null> => {
     try {

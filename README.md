@@ -58,6 +58,22 @@ Analysis runs on your CPU and can take a few minutes. Compare models on your own
 `python backend/scripts/benchmark.py --models mistral:7b qwen2.5:7b`. It uses the samples in `data/samples/`
 and writes results to `docs/benchmarks/`.
 
+### Using Gemini instead of Ollama (optional)
+
+If local models are too slow, you can use Google's hosted Gemini through its free tier. Local Ollama stays the default.
+
+1. Create a free key at https://aistudio.google.com/apikey.
+2. Open **Settings** in the app, choose Gemini, paste the key, pick a model and press Save, then Test connection.
+   (Alternatively copy `backend/.env.example` to `backend/.env` and set `AIA_LLM_PROVIDER=gemini` and `AIA_GEMINI_API_KEY=...`; `.env` is git-ignored.)
+3. `python backend/scripts/check_llm.py` runs the same check from the terminal.
+
+The default is `gemini-3.5-flash-lite`: on a real run it analysed a resume and job description in about 5 s and answered each interview turn in 2-4 s,
+against about 2 minutes and 20-60 s with a local 7B model on CPU. `gemini-3.8-flash` was returning "high demand" (503) errors during testing.
+
+Privacy: with Gemini your resume and job description are sent to Google, and on the free tier Google may use them to improve its products.
+Free-tier rate limits apply (see your limits in AI Studio); the app retries briefly on rate-limit errors. Document search (embeddings)
+is skipped with Gemini unless you set `AIA_GEMINI_EMBED_MODEL`.
+
 ### How the interview works
 
 The plan is built in plain code from the analysis (intro, core skills, project deep dives, gap areas, behavioural, your questions).

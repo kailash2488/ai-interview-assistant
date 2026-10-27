@@ -6,6 +6,7 @@ _tmp = Path(tempfile.mkdtemp(prefix="aia-tests-"))
 os.environ["AIA_DATABASE_URL"] = f"sqlite:///{_tmp / 'test.db'}"
 os.environ["AIA_UPLOAD_DIR"] = str(_tmp / "uploads")
 os.environ["AIA_QDRANT_PATH"] = ":memory:"
+os.environ["AIA_RUNTIME_SETTINGS_PATH"] = str(_tmp / "llm_settings.json")
 
 import fitz  # noqa: E402
 import pytest  # noqa: E402

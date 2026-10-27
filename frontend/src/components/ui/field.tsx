@@ -6,11 +6,13 @@ const CONTROL =
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
-    <label className="block space-y-1">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
-      {children}
-      {hint && <span className="block text-xs text-slate-500">{hint}</span>}
-    </label>
+    <div className="space-y-1">
+      <label className="block space-y-1">
+        <span className="text-sm font-medium text-slate-700">{label}</span>
+        {children}
+      </label>
+      {hint && <p className="text-xs text-slate-500">{hint}</p>}
+    </div>
   )
 }
 
