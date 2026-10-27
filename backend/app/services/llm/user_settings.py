@@ -12,6 +12,11 @@ from app.models import UserLLMSettings
 
 log = logging.getLogger(__name__)
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
+DEFAULT_MODELS = {
+    "openai": "gpt-4.1-mini",
+    "anthropic": "claude-sonnet-4-5",
+    "azure": "gpt-4.1-mini",
+}
 # Models offered in the Settings screen (from Google AI Studio's list). `tier` is a hint only: Google's pricing page
 # lists a free tier for the first two; the others are paid. Check your own limits in AI Studio.
 GEMINI_MODELS = [
@@ -25,14 +30,18 @@ GEMINI_MODEL_IDS = [m["id"] for m in GEMINI_MODELS]
 
 @dataclass(frozen=True)
 class LLMConfig:
-    provider: str                 # "ollama" | "gemini"
+    provider: str
     gemini_model: str
     gemini_api_key: str | None
     key_source: str               # "settings" (the user's own key) | "environment" (server default) | "none"
+    model: str | None = None
+    api_key: str | None = None
+    azure_endpoint: str | None = None
+    azure_api_version: str = "2024-10-21"
 
     @property
     def key_hint(self) -> str | None:
-        key = (self.gemini_api_key or "").strip()
+        key = (self.api_key or self.gemini_api_key or "").strip()
         return f"…{key[-4:]}" if len(key) >= 8 else None
 
 
@@ -42,29 +51,50 @@ def _env_key() -> str | None:
 
 def server_default() -> LLMConfig:
     key = _env_key()
-    return LLMConfig(settings.llm_provider, settings.gemini_model, key, "environment" if key else "none")
+    return LLMConfig(settings.llm_provider, settings.gemini_model, key, "environment" if key else "none", model=settings.gemini_model, api_key=key)
 
 
 def config_for_user(db: Session, user_id: str | None) -> LLMConfig:
     row = db.get(UserLLMSettings, user_id) if user_id else None
     if row is None:
         return server_default()
-    own = decrypt_secret(row.gemini_key_enc) if row.gemini_key_enc else None
-    key = own or _env_key()
+    key_column = "gemini_key_enc" if row.provider == "gemini" else f"{row.provider}_key_enc"
+    encrypted = getattr(row, key_column, None)
+    own = decrypt_secret(encrypted) if encrypted else None
+    env_key = _env_key() if row.provider == "gemini" else None
+    key = own or env_key
     model = row.gemini_model if row.gemini_model in GEMINI_MODEL_IDS else DEFAULT_GEMINI_MODEL
-    return LLMConfig(row.provider, model, key, "settings" if own else ("environment" if key else "none"))
+    selected_model = model if row.provider == "gemini" else (getattr(row, f"{row.provider}_model", None) or DEFAULT_MODELS.get(row.provider))
+    return LLMConfig(
+        row.provider, model, key if row.provider == "gemini" else None,
+        "settings" if own else ("environment" if key else "none"),
+        model=selected_model, api_key=key,
+        azure_endpoint=row.azure_endpoint,
+        azure_api_version=row.azure_api_version or "2024-10-21",
+    )
 
 
-def save_for_user(db: Session, user_id: str, *, provider: str, gemini_model: str, api_key: str | None = None, clear_key: bool = False) -> None:
+def save_for_user(
+    db: Session, user_id: str, *, provider: str, gemini_model: str,
+    api_key: str | None = None, clear_key: bool = False, model: str | None = None,
+    azure_endpoint: str | None = None, azure_api_version: str | None = None,
+) -> None:
     row = db.get(UserLLMSettings, user_id)
     if row is None:
         row = UserLLMSettings(user_id=user_id)
         db.add(row)
     row.provider, row.gemini_model = provider, gemini_model
+    if provider != "ollama" and model:
+        setattr(row, f"{provider}_model", model.strip())
+    if provider == "azure":
+        row.azure_endpoint = azure_endpoint.strip().rstrip("/") if azure_endpoint else row.azure_endpoint
+        row.azure_api_version = azure_api_version.strip() if azure_api_version else (row.azure_api_version or "2024-10-21")
+    key_column = "gemini_key_enc" if provider == "gemini" else (f"{provider}_key_enc" if provider != "ollama" else None)
     if clear_key:
-        row.gemini_key_enc = None
-    elif api_key:
-        row.gemini_key_enc = encrypt_secret(api_key.strip())
+        if key_column:
+            setattr(row, key_column, None)
+    elif api_key and key_column:
+        setattr(row, key_column, encrypt_secret(api_key.strip()))
     db.commit()
 
 

@@ -41,7 +41,7 @@ class AuthSession(Base):
 
 
 class UserLLMSettings(Base):
-    """Which model a user's interviews run on. The Gemini key is stored encrypted."""
+    """Which model a user's interviews run on. Cloud credentials are stored encrypted."""
 
     __tablename__ = "user_llm_settings"
 
@@ -49,3 +49,11 @@ class UserLLMSettings(Base):
     provider: Mapped[str] = mapped_column(String(20), default="ollama")
     gemini_model: Mapped[str] = mapped_column(String(80), default="gemini-3.5-flash-lite")
     gemini_key_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    openai_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    openai_key_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    anthropic_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    anthropic_key_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    azure_model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    azure_key_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
+    azure_endpoint: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    azure_api_version: Mapped[str | None] = mapped_column(String(40), nullable=True)

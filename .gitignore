@@ -10,3 +10,4 @@ qdrant_data/
 .pytest_cache/
 backend/uploads/
 .vscode/
+.claude/

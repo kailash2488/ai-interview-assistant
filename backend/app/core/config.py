@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     max_other_documents: int = 10
 
     # "ollama" (local, private, default) or "gemini" (Google's hosted API; needs AIA_GEMINI_API_KEY)
-    llm_provider: Literal["ollama", "gemini"] = "ollama"
+    llm_provider: Literal["ollama", "gemini", "openai", "anthropic", "azure"] = "ollama"
 
     gemini_api_key: SecretStr | None = None
     gemini_model: str = "gemini-3.5-flash-lite"

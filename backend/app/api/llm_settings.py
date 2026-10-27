@@ -24,19 +24,30 @@ class GeminiModelOut(BaseModel):
 
 
 class LLMSettingsOut(BaseModel):
-    provider: Literal["ollama", "gemini"]
+    provider: Literal["ollama", "gemini", "openai", "anthropic", "azure"]
     gemini_model: str
     gemini_models: list[GeminiModelOut]
     gemini_key_set: bool
     gemini_key_hint: str | None
     gemini_key_source: Literal["settings", "environment", "none"]
     ollama_model: str
+    openai_model: str
+    anthropic_model: str
+    azure_model: str
+    azure_endpoint: str
+    azure_api_version: str
+    key_set: dict[str, bool]
+    key_hint: dict[str, str | None]
 
 
 class LLMSettingsIn(BaseModel):
-    provider: Literal["ollama", "gemini"]
+    provider: Literal["ollama", "gemini", "openai", "anthropic", "azure"]
     gemini_model: str = Field(default=us.DEFAULT_GEMINI_MODEL, max_length=80)
     gemini_api_key: str | None = Field(default=None, max_length=300)  # omit to keep the saved key
+    api_key: str | None = Field(default=None, max_length=500)
+    model: str | None = Field(default=None, min_length=1, max_length=100)
+    azure_endpoint: str | None = Field(default=None, max_length=500)
+    azure_api_version: str = Field(default="2024-10-21", max_length=40)
 
     @field_validator("gemini_model")
     @classmethod
@@ -45,13 +56,21 @@ class LLMSettingsIn(BaseModel):
             raise ValueError(f"Unknown model. Choose one of: {', '.join(us.GEMINI_MODEL_IDS)}")
         return v
 
-    @field_validator("gemini_api_key")
+    @field_validator("gemini_api_key", "api_key")
     @classmethod
     def _strip(cls, v: str | None) -> str | None:
         v = v.strip() if v else None
         if v and any(c.isspace() for c in v):
             raise ValueError("API keys do not contain spaces")
         return v or None
+
+    @field_validator("azure_endpoint")
+    @classmethod
+    def _endpoint(cls, v: str | None) -> str | None:
+        v = v.strip().rstrip("/") if v else None
+        if v and not v.startswith("https://"):
+            raise ValueError("Azure endpoint must start with https://")
+        return v
 
 
 class TestResult(BaseModel):
@@ -64,10 +83,23 @@ class TestResult(BaseModel):
 
 def _out(db: Session, user: User) -> LLMSettingsOut:
     cfg = us.config_for_user(db, user.id)
+    row = db.get(us.UserLLMSettings, user.id)
+    keys, hints = {}, {}
+    for provider in ("gemini", "openai", "anthropic", "azure"):
+        enc = getattr(row, f"{provider}_key_enc", None) if row else None
+        key = us.decrypt_secret(enc) if enc else (us._env_key() if provider == "gemini" else None)
+        keys[provider] = bool(key)
+        hints[provider] = f"…{key[-4:]}" if key and len(key) >= 8 else None
     return LLMSettingsOut(
         provider=cfg.provider, gemini_model=cfg.gemini_model, gemini_models=us.GEMINI_MODELS,
         gemini_key_set=cfg.key_source != "none", gemini_key_hint=cfg.key_hint, gemini_key_source=cfg.key_source,
         ollama_model=settings.interviewer_model,
+        openai_model=(row.openai_model if row and row.openai_model else us.DEFAULT_MODELS["openai"]),
+        anthropic_model=(row.anthropic_model if row and row.anthropic_model else us.DEFAULT_MODELS["anthropic"]),
+        azure_model=(row.azure_model if row and row.azure_model else "your-deployment-name"),
+        azure_endpoint=(row.azure_endpoint if row and row.azure_endpoint else ""),
+        azure_api_version=(row.azure_api_version if row and row.azure_api_version else "2024-10-21"),
+        key_set=keys, key_hint=hints,
     )
 
 
@@ -78,9 +110,19 @@ def get_settings(db: Session = Depends(get_db), user: User = Depends(current_use
 
 @router.put("", response_model=LLMSettingsOut)
 def update_settings(payload: LLMSettingsIn, db: Session = Depends(get_db), user: User = Depends(current_user)):
-    if payload.provider == "gemini" and not payload.gemini_api_key and us.config_for_user(db, user.id).key_source == "none":
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Enter a Gemini API key to use Gemini")
-    us.save_for_user(db, user.id, provider=payload.provider, gemini_model=payload.gemini_model, api_key=payload.gemini_api_key)
+    existing = _out(db, user)
+    incoming_key = payload.gemini_api_key if payload.provider == "gemini" else payload.api_key
+    if payload.provider != "ollama" and not incoming_key and not existing.key_set.get(payload.provider):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Enter an API key to use {payload.provider.title()}")
+    if payload.provider in ("openai", "anthropic", "azure") and not payload.model:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Enter a model or deployment name")
+    if payload.provider == "azure" and not (payload.azure_endpoint or existing.azure_endpoint):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Enter your Azure OpenAI endpoint")
+    us.save_for_user(
+        db, user.id, provider=payload.provider, gemini_model=payload.gemini_model,
+        api_key=incoming_key, model=payload.model,
+        azure_endpoint=payload.azure_endpoint, azure_api_version=payload.azure_api_version,
+    )
     return _out(db, user)
 
 
@@ -88,8 +130,23 @@ def update_settings(payload: LLMSettingsIn, db: Session = Depends(get_db), user:
 def remove_key(db: Session = Depends(get_db), user: User = Depends(current_user)):
     """Removing the key also switches back to the local model so nothing is left half-configured."""
     cfg = us.config_for_user(db, user.id)
-    still_has_server_key = cfg.key_source == "settings" and us.server_default().gemini_api_key
-    us.save_for_user(db, user.id, provider=cfg.provider if still_has_server_key else "ollama", gemini_model=cfg.gemini_model, clear_key=True)
+    still_has_server_key = bool(us.server_default().gemini_api_key)
+    us.save_for_user(db, user.id, provider="gemini", gemini_model=cfg.gemini_model, clear_key=True)
+    row = db.get(us.UserLLMSettings, user.id)
+    if row:
+        row.provider = "gemini" if still_has_server_key else "ollama"
+        db.commit()
+    return _out(db, user)
+
+
+@router.delete("/key/{provider}", response_model=LLMSettingsOut)
+def remove_provider_key(provider: Literal["gemini", "openai", "anthropic", "azure"], db: Session = Depends(get_db), user: User = Depends(current_user)):
+    cfg = us.config_for_user(db, user.id)
+    us.save_for_user(db, user.id, provider=provider, gemini_model=cfg.gemini_model, clear_key=True)
+    row = db.get(us.UserLLMSettings, user.id)
+    if row and row.provider == provider:
+        row.provider = "ollama"
+        db.commit()
     return _out(db, user)
 
 

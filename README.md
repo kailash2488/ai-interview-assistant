@@ -6,6 +6,8 @@ You choose where the AI runs, per account:
 
 - **Local (free and private):** open-source models through [Ollama](https://ollama.com). Your resume never leaves your computer. Slow on a laptop without a GPU.
 - **Google Gemini (cloud, fast):** bring your own API key. A free key works. Your resume and job description are sent to Google.
+- **OpenAI or Anthropic:** use your own API key and model ID for GPT or Claude models.
+- **Azure OpenAI:** connect an enterprise Azure resource with its endpoint, deployment name, API version and key.
 
 Everything else is open source and free: FastAPI, React, SQLite and Qdrant.
 
@@ -57,7 +59,7 @@ Watch a walkthrough from sign-up to report: [docs/demo.mp4](docs/demo.mp4) (reco
 | **Python 3.10 or newer** | the backend (from source) | `python3 --version` | 3.10, 3.11 and 3.12 work. The Docker image uses 3.11. |
 | **Node.js 20 or newer** (with npm) | the frontend (from source) | `node --version` and `npm --version` | install from [nodejs.org](https://nodejs.org) or `nvm` |
 | **Docker with Compose v2** | the Docker route only | `docker --version` and `docker compose version` | Compose 2.24 or newer, because the optional `backend/.env` is loaded with `required: false` |
-| **An AI model**: a Gemini key *or* Ollama | analysis, interview, report | see [Set up the AI model](#set-up-the-ai-model) | Gemini is the easiest. Ollama needs about 8 GB of free RAM for a 7B model. |
+| **An AI model**: Ollama or a supported cloud-provider key | analysis, interview, report | see [Set up the AI model](#set-up-the-ai-model) | Ollama needs about 8 GB of free RAM for a 7B model. |
 | **Microphone and a modern browser** | voice mode only (optional) | | Chrome, Edge, Firefox or Safari. The page must be on `localhost` or HTTPS. |
 
 Disk space: about 1 GB for the Python packages, about 300 MB for the frontend packages, 4.4 GB for each Ollama chat model, about 200 MB for the voice models (optional).
@@ -226,7 +228,17 @@ npm run build        # type-checks, then writes the static site to frontend/dist
 
 ## Set up the AI model
 
-Each account chooses its own model on the **Settings** page. The server's settings only decide what an account uses until it chooses. Pick one of the two options.
+Each account chooses its own provider on the **Settings** page. Credentials are encrypted per account and never returned to the browser. The server's settings only decide what an account uses until it chooses.
+
+The Settings page supports five providers:
+
+- **Ollama:** local and private; no key required.
+- **Google Gemini:** paste a Google AI Studio key and choose a listed Gemini model.
+- **OpenAI:** paste an OpenAI API key and enter a model ID such as `gpt-4o-mini`.
+- **Anthropic:** paste an Anthropic API key and enter a Claude model ID such as `claude-3-5-haiku-latest`.
+- **Azure OpenAI:** enter the Azure resource endpoint, deployment name, API version and API key.
+
+Use **Test connection** after saving. Cloud providers receive resume, job-description and answer content needed for the selected task; review the provider's data-retention policy before using sensitive documents.
 
 ### Option A: Google Gemini (fastest, needs a key)
 
@@ -241,7 +253,7 @@ Each account chooses its own model on the **Settings** page. The server's settin
 
 Good to know: with Gemini your resume and job description are sent to Google, and on the free tier Google may use them to improve its products. Free-tier limits are per minute, so a long report may pause and retry. `gemini-3.8-flash` was often overloaded during testing; Flash-Lite is the safe default. Your key is stored encrypted and is never shown again, only its last four characters.
 
-### Option B: a local model with Ollama (free and private, slower)
+### Local option: Ollama (free and private, slower)
 
 1. Install Ollama: `curl -fsSL https://ollama.com/install.sh | sh` (Linux; see https://ollama.com/download for macOS and Windows). It starts a background service on port 11434.
 2. Download the two models (about 5 GB in total):
@@ -332,7 +344,7 @@ Server settings come from environment variables prefixed `AIA_`, or from `backen
 | `AIA_SESSION_DAYS` | `30` | How long a login lasts |
 | `AIA_MAX_LOGIN_FAILURES` | `5` | Wrong passwords before a lockout |
 | `AIA_LOGIN_LOCKOUT_MINUTES` | `15` | Lockout length |
-| `AIA_LLM_PROVIDER` | `ollama` | Default provider: `ollama` or `gemini` |
+| `AIA_LLM_PROVIDER` | `ollama` | Default provider: `ollama`, `gemini`, `openai`, `anthropic` or `azure` (non-Gemini cloud credentials are configured per account) |
 | `AIA_GEMINI_API_KEY` | none | Optional shared Gemini key for accounts without their own |
 | `AIA_GEMINI_MODEL` | `gemini-3.5-flash-lite` | Default Gemini model |
 | `AIA_GEMINI_TIMEOUT_SECONDS` | `45` | Wait for one Gemini answer |
@@ -428,7 +440,7 @@ React (Vite)  --REST + WebSocket-->  FastAPI
                                        |- feedback    rubric evaluator, guards, report, PDF
                                        |- voice       optional local speech-to-text and text-to-speech
                                        |- dashboard   stats, trend, weak topics, milestones, practise again
-                                       |- llm         Ollama or Gemini client, JSON-schema output, retry
+                                       |- llm         Ollama, Gemini, OpenAI, Anthropic or Azure client
                                        +- SQLite + embedded Qdrant
 ```
 
@@ -454,7 +466,7 @@ docs                    SOP.pdf (the original plan), benchmarks, screenshots, de
 
 Limitations:
 
-- Local models on a CPU-only laptop are slow. Use Gemini or a machine with a GPU for a smooth experience.
+- Local models on a CPU-only laptop are slow. Use a configured cloud provider or a machine with a GPU for a smooth experience.
 - Scores come from a rubric applied by a language model, so they are good for comparing your own attempts over time and for spotting weak areas. They are not a hiring decision.
 - English only. Voice mode needs the optional speech models (see above). There is no email verification and no emailed password reset (see above for the owner's reset tool).
 - Scanned PDFs are not supported (no OCR).

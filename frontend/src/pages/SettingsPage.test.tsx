@@ -12,6 +12,9 @@ const base: LLMSettings = {
     { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (preview)', note: 'Strongest', tier: 'paid' },
   ],
   gemini_key_set: false, gemini_key_hint: null, gemini_key_source: 'none', ollama_model: 'mistral:7b',
+  openai_model: 'gpt-4o-mini', anthropic_model: 'claude-3-5-haiku-latest', azure_model: 'your-deployment-name',
+  azure_endpoint: '', azure_api_version: '2024-10-21', key_set: { gemini: false, openai: false, anthropic: false, azure: false },
+  key_hint: { gemini: null, openai: null, anthropic: null, azure: null },
 }
 
 const dataSummary = { sessions: 2, documents: 4, answers: 12, reports: 1, upload_bytes: 20480 }

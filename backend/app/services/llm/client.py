@@ -151,4 +151,12 @@ def get_llm(config=None) -> LLMClient:
         from app.services.llm.gemini import GeminiClient
 
         return GeminiClient(config)
+    if config.provider in ("openai", "azure"):
+        from app.services.llm.hosted import OpenAICompatibleClient
+
+        return OpenAICompatibleClient(config)
+    if config.provider == "anthropic":
+        from app.services.llm.hosted import AnthropicClient
+
+        return AnthropicClient(config)
     return OllamaClient()

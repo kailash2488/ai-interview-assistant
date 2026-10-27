@@ -138,7 +138,7 @@ export function wsUrl(path: string): string {
   return `${base.replace(/^http/, 'ws')}${path}`
 }
 
-export type Provider = 'ollama' | 'gemini'
+export type Provider = 'ollama' | 'gemini' | 'openai' | 'anthropic' | 'azure'
 export interface GeminiModel {
   id: string
   label: string
@@ -153,6 +153,13 @@ export interface LLMSettings {
   gemini_key_hint: string | null
   gemini_key_source: 'settings' | 'environment' | 'none'
   ollama_model: string
+  openai_model: string
+  anthropic_model: string
+  azure_model: string
+  azure_endpoint: string
+  azure_api_version: string
+  key_set: Record<string, boolean>
+  key_hint: Record<string, string | null>
 }
 export interface LLMTestResult {
   ok: boolean
@@ -401,9 +408,10 @@ export const api = {
   patchAnalysis: (sid: string, body: { profile?: CandidateProfile; requirements?: JDRequirements }) =>
     request<Analysis>(`/sessions/${sid}/analysis`, { ...json(body), method: 'PATCH' }),
   getLLMSettings: () => request<LLMSettings>('/settings/llm'),
-  saveLLMSettings: (body: { provider: Provider; gemini_model: string; gemini_api_key?: string }) =>
+  saveLLMSettings: (body: { provider: Provider; gemini_model: string; gemini_api_key?: string; api_key?: string; model?: string; azure_endpoint?: string; azure_api_version?: string }) =>
     request<LLMSettings>('/settings/llm', { ...json(body), method: 'PUT' }),
   removeGeminiKey: () => request<LLMSettings>('/settings/llm/key', { method: 'DELETE' }),
+  removeProviderKey: (provider: Exclude<Provider, 'ollama'>) => request<LLMSettings>(`/settings/llm/key/${provider}`, { method: 'DELETE' }),
   testLLM: () => request<LLMTestResult>('/settings/llm/test', { method: 'POST' }),
   generateReport: (sid: string) => request<Report>(`/sessions/${sid}/report`, { method: 'POST' }),
   /** Resolves to null when no report has been requested yet. */
