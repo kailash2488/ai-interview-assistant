@@ -1,4 +1,4 @@
-import { CalendarCheck, Flame, Gauge, MessageCircleMore, Plus, Trash2 } from 'lucide-react'
+import { ArrowRight, CalendarCheck, Flame, Gauge, MessageCircleMore, Plus, Sparkles, Target, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BadgesCard } from '../components/dashboard/BadgesCard'
@@ -12,7 +12,6 @@ import { ScoreBars } from '../components/ScoreBars'
 import { Badge, type Tone } from '../components/ui/badge'
 import { Button, buttonClasses } from '../components/ui/button'
 import { Card } from '../components/ui/card'
-import { PageHeader } from '../components/ui/page'
 import { api, type Dashboard, type Session } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { formatDate } from '../lib/utils'
@@ -68,16 +67,32 @@ export function Home() {
   const weak = (data?.weakest ?? []).filter((t) => t.score < 60).map((t) => t.name).slice(0, 3)
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title={user ? `Hi ${user.name.split(' ')[0]}, ready to practise?` : 'Your interviews'}
-        subtitle="Your progress, what to work on next, and all your interviews in one place."
-        actions={
-          <Link to="/new" className={buttonClasses('primary', 'md')}>
-            <Plus className="size-4" aria-hidden /> New interview
-          </Link>
-        }
-      />
+    <div className="space-y-8 xl:space-y-10">
+      <section className="dashboard-hero relative isolate overflow-hidden rounded-[2rem] border border-white/70 px-6 py-8 text-white shadow-lift sm:px-8 lg:px-10 lg:py-10">
+        <div aria-hidden className="absolute -right-16 -top-28 size-80 rounded-full border border-white/15 bg-white/10 blur-sm" />
+        <div aria-hidden className="absolute -bottom-28 left-1/3 size-72 rounded-full bg-fuchsia-400/20 blur-3xl" />
+        <div className="relative flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
+          <div className="max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-indigo-100 backdrop-blur">
+              <Sparkles className="size-3.5" aria-hidden /> Personal interview workspace
+            </div>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
+              {user ? `Hi ${user.name.split(' ')[0]}, ready to practise?` : 'Your interviews'}
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-indigo-100 sm:text-base">
+              Practise with questions grounded in your resume, turn feedback into a focused plan, and watch every attempt move you closer to the role.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-3">
+            <Link to="/history" className={buttonClasses('secondary', 'lg', 'border-white/20 bg-white/10 text-white hover:bg-white/20')}>
+              View progress <ArrowRight className="size-4" aria-hidden />
+            </Link>
+            <Link to="/new" className={buttonClasses('secondary', 'lg', 'border-white bg-white text-brand-700 hover:bg-indigo-50')}>
+              <Plus className="size-4" aria-hidden /> New interview
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {error && (
         <p role="alert" className="rounded-xl bg-red-50 p-3.5 text-sm text-red-700">
@@ -90,7 +105,7 @@ export function Home() {
         <>
           <NextActionCard action={data.next_action} />
 
-          <section aria-label="Your numbers" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <section aria-label="Your numbers" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Latest score" value={dash(stats.latest_score)} change={stats.change} hint={stats.change === null ? 'out of 100' : 'vs your previous'} icon={<Gauge className="size-5" aria-hidden />} />
             <StatCard label="Average score" value={dash(stats.avg_score)} hint={stats.reports ? `across ${stats.reports} report${stats.reports === 1 ? '' : 's'}` : 'after your first report'} icon={<CalendarCheck className="size-5" aria-hidden />} />
             <StatCard label="Practice streak" value={`${stats.streak_days} ${stats.streak_days === 1 ? 'day' : 'days'}`} hint={`${stats.practice_days_30} practice day${stats.practice_days_30 === 1 ? '' : 's'} in 30 days`} icon={<Flame className="size-5" aria-hidden />} />
@@ -100,11 +115,11 @@ export function Home() {
           {stats.reports === 0 ? (
             <GettingStarted />
           ) : (
-            <div className="grid gap-6 lg:grid-cols-5">
-              <Card className="flex flex-col lg:col-span-3">
+            <div className="grid gap-6 xl:grid-cols-12">
+              <Card className="flex flex-col xl:col-span-8">
                 <TrendChart points={data.trend.map((t) => ({ id: t.session_id, label: t.title, date: t.date, score: t.score }))} />
               </Card>
-              <Card className="space-y-4 lg:col-span-2">
+              <Card className="space-y-4 xl:col-span-4">
                 <ScoreBars title="Topics to work on" bars={data.weakest.map((t) => ({ label: t.name, value: t.score, detail: `${t.attempts} answer round${t.attempts === 1 ? '' : 's'}` }))} />
                 {data.strongest.length > 0 && (
                   <p className="text-xs text-slate-500">
@@ -116,7 +131,7 @@ export function Home() {
             </div>
           )}
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 xl:grid-cols-2">
             {data.dimensions.length > 0 ? (
               <Card>
                 <ScoreBars
@@ -133,17 +148,21 @@ export function Home() {
         </>
       )}
 
-      <section aria-labelledby="all-interviews" className="space-y-3">
-        <h2 id="all-interviews" className="text-lg font-semibold text-slate-900">
-          All interviews
-        </h2>
+      <section aria-labelledby="all-interviews" className="space-y-4 rounded-3xl border border-slate-200/70 bg-white/55 p-4 shadow-card backdrop-blur-sm sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-600"><Target className="size-4" aria-hidden /> Practice library</p>
+            <h2 id="all-interviews" className="mt-1 text-xl font-semibold text-slate-900">All interviews</h2>
+          </div>
+          <p className="text-sm text-slate-500">{sessions?.length ?? 0} total session{sessions?.length === 1 ? '' : 's'}</p>
+        </div>
         {sessions?.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-6 text-center text-sm text-slate-500">No interviews yet. Your first one will appear here.</p>}
         <ul className="space-y-3">
           {sessions?.map((s) => {
             const stage = STAGES[s.status] ?? STAGES.created
             return (
               <li key={s.id}>
-                <Card className="flex items-center gap-4 p-5 transition-shadow hover:shadow-lift">
+                <Card className="group flex items-center gap-4 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lift">
                   <Link to={stage.next(s.id)} className="min-w-0 flex-1">
                     <p className="truncate text-base font-semibold text-slate-900">{s.title}</p>
                     <p className="mt-0.5 truncate text-sm text-slate-500">
