@@ -56,6 +56,10 @@ Open http://localhost:8080, create an account, then open **Settings** to pick a 
 
 Change the port with `APP_PORT=9000 docker compose up`. Your data lives in Docker volumes; `docker compose down -v` removes it.
 
+If you create `backend/.env` (see `backend/.env.example`), compose passes it to the backend, so a server-wide Gemini key and model apply to every account that has not set its own. The file is git-ignored; keep it that way.
+
+**If the build is very slow or fails downloading packages** (some machines have slow container networking), build on the host's network and then start without rebuilding: `docker build --network=host -t ai_assistant-backend:latest ./backend && docker compose up -d`.
+
 **Before you expose it to other people:** the first account is created by whoever gets there first, so create yours straight away, then close registration with `ALLOW_SIGNUP=false` (see [Accounts and security](#accounts-and-security)) and serve the app over HTTPS with `COOKIE_SECURE=true`.
 
 ## Run without Docker
@@ -99,7 +103,7 @@ pip install -e ".[voice]"
 python scripts/download_voice.py       # about 200 MB, once
 ```
 
-With Docker: `INSTALL_VOICE=1 docker compose up --build`, then `docker compose exec backend python scripts/download_voice.py` once. (The voice image has not been built and tested; the non-Docker path has.)
+With Docker: `INSTALL_VOICE=1 docker compose up --build`, then `docker compose exec backend python scripts/download_voice.py` once. This was built and tested end to end (speaking a question and transcribing an answer inside the container).
 
 In the interview room turn on **Voice mode**. Press the microphone, speak, and it stops by itself when you go quiet (or press the square). The text appears in the answer box so you can fix mistakes before you send it. Your pace (words per minute) and long pauses are measured from the recording and shown in the report's communication section.
 

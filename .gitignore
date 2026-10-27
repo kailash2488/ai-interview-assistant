@@ -9,3 +9,4 @@ qdrant_data/
 .DS_Store
 .pytest_cache/
 backend/uploads/
+.vscode/

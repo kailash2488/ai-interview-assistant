@@ -15,6 +15,10 @@ services:
       context: ./backend
       args:
         INSTALL_VOICE: ${INSTALL_VOICE:-0}   # 1 adds local voice mode: INSTALL_VOICE=1 docker compose up --build
+    # backend/.env (git-ignored) supplies AIA_GEMINI_API_KEY and friends; the file is optional
+    env_file:
+      - path: ./backend/.env
+        required: false
     environment:
       AIA_OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       AIA_ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}        # set to false once your accounts exist

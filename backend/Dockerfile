@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 WORKDIR /srv
-ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DEFAULT_TIMEOUT=120 PIP_RETRIES=8
 COPY pyproject.toml ./
 ARG INSTALL_VOICE=0
 # Voice mode (local speech-to-text and text-to-speech) adds about 400 MB; build with INSTALL_VOICE=1 to include it.
