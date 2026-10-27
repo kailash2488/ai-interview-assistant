@@ -1,0 +1,45 @@
+{
+  "note": "Hand-labelled answers. The evaluator must rank strong above average above weak for every question.",
+  "items": [
+    {
+      "id": "redis_cache",
+      "question": "How have you used Redis in your projects?",
+      "goal": "Assess practical depth in Redis, including trade-offs and real experience.",
+      "answers": {
+        "strong": "I used Redis as a read-through cache in front of our product catalogue API. We cached query results for five minutes with TTL expiry, which cut database load by roughly half. The main risk was stale prices, so I added explicit invalidation whenever a price changed, and I used an allkeys-lru eviction policy so memory pressure never took the cache down. I measured the effect with p95 latency dashboards before and after the rollout.",
+        "average": "I used Redis for caching in our API. We stored the results of some database queries in Redis with an expiry time so that repeated requests were faster. It reduced the load on the database and we did not have major problems with it.",
+        "weak": "I used Redis for caching. It makes things faster."
+      }
+    },
+    {
+      "id": "async_python",
+      "question": "When would you choose asyncio over threads in a Python backend, and what are the trade-offs?",
+      "goal": "Assess practical depth in Python concurrency, including trade-offs and real experience.",
+      "answers": {
+        "strong": "I choose asyncio for I/O-bound services with many concurrent connections, like our FastAPI gateway that fans out to five downstream APIs. One event loop handles thousands of waiting requests with little memory, while threads cost a stack each and add locking risks. The trade-off is that any blocking call, such as a synchronous database driver or a CPU-heavy parse, stalls the whole loop, so I moved those to a thread pool executor or a separate worker process. For CPU-bound work I use multiprocessing because of the GIL.",
+        "average": "Asyncio is good when you do a lot of network calls because it can handle many requests at once without creating many threads. Threads are simpler to reason about but use more memory. I would use async for web APIs and threads when a library does not support async.",
+        "weak": "Asyncio is faster than threads so I would always use it. Threads are old."
+      }
+    },
+    {
+      "id": "team_conflict",
+      "question": "Tell me about a time you disagreed with a teammate. What happened and how did you resolve it?",
+      "goal": "Assess how the candidate handles disagreement or friction in a team.",
+      "answers": {
+        "strong": "Last year a teammate and I disagreed about adding a message queue to our order service. I thought it would remove a timeout problem, he thought it was over-engineering. Instead of arguing, I wrote a one-page comparison and ran a load test on both options. The test showed the simple retry approach met our latency target, so I dropped my proposal and we shipped his version in a week. Afterwards we agreed to settle similar debates with a quick benchmark.",
+        "average": "I once disagreed with a colleague about how to structure some code. We talked about it and each explained our view, and in the end we agreed on a compromise that worked for the project.",
+        "weak": "I do not really disagree with people. I just do what the team decides."
+      }
+    },
+    {
+      "id": "postgres_index",
+      "question": "How do you decide whether to add an index to a PostgreSQL table?",
+      "goal": "Assess practical depth in PostgreSQL, including trade-offs and real experience.",
+      "answers": {
+        "strong": "I start from a slow query, not from guessing. I run EXPLAIN ANALYZE to see whether it does a sequential scan on a large table and how selective the filter is. If it is selective, I add a B-tree index on the filtered and joined columns, in the order that matches the query, sometimes a partial index when only a subset of rows matters. The cost is slower writes and more disk, so I avoid indexing low-cardinality columns and I check pg_stat_user_indexes later to drop unused ones. On our orders table a composite index took a report from 8 seconds to 90 milliseconds.",
+        "average": "I add an index when a query is slow and filters on a column. I check the query plan to see that the index is used. Too many indexes slow down inserts so I try not to add too many.",
+        "weak": "I add indexes on all the columns so that the database is always fast."
+      }
+    }
+  ]
+}

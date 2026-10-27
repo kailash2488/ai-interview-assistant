@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { vi } from 'vitest'
@@ -118,6 +118,32 @@ describe('Interview room', () => {
     expect(screen.getByText('Interview complete.')).toBeInTheDocument()
     expect(screen.queryByLabelText('Your answer')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'End interview' })).not.toBeInTheDocument()
+  })
+
+  it('offers a generate-report button after the interview and never starts a report by itself', async () => {
+    const calls: Array<[string, string | undefined]> = []
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push([String(url), init?.method])
+      if (init?.method === 'POST') return new Response(JSON.stringify({ status: 'running' }), { status: 202 })
+      return new Response(JSON.stringify({ detail: 'none' }), { status: 404 })
+    }))
+    const ws = setup()
+    ws.push(emptyState)
+    ws.push({ type: 'complete', message: 'done' })
+    expect(calls).toEqual([])
+    await userEvent.click(screen.getByRole('button', { name: 'Generate feedback report' }))
+    await waitFor(() => expect(calls.some(([u, m]) => u.endsWith('/sessions/s1/report') && m === 'POST')).toBe(true))
+  })
+
+  it('shows why a report could not be started', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (_u: string, init?: RequestInit) =>
+      init?.method === 'POST'
+        ? new Response(JSON.stringify({ detail: 'Answer at least one question' }), { status: 409 })
+        : new Response('{}', { status: 404 })))
+    const ws = setup()
+    ws.push({ ...emptyState, status: 'completed' })
+    await userEvent.click(screen.getByRole('button', { name: 'Generate feedback report' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Answer at least one question')
   })
 
   it('opens a completed interview straight to the finished state', () => {

@@ -39,6 +39,7 @@ class InterviewSession(Base):
     questions: Mapped[list["Question"]] = relationship(
         cascade="all, delete-orphan", order_by="Question.order_no"
     )
+    report: Mapped["Report | None"] = relationship(cascade="all, delete-orphan", uselist=False)
 
 
 class Document(Base):
@@ -120,3 +121,37 @@ class Answer(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     question: Mapped[Question] = relationship(back_populates="answer")
+    evaluation: Mapped["Evaluation | None"] = relationship(back_populates="answer", cascade="all, delete-orphan", uselist=False)
+
+
+class Evaluation(Base):
+    """Rubric scores for one answer (written by the report job, after the interview)."""
+
+    __tablename__ = "evaluations"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    answer_id: Mapped[str] = mapped_column(ForeignKey("answers.id", ondelete="CASCADE"), unique=True, index=True)
+    scores_json: Mapped[dict] = mapped_column(JSON)  # {dimension: {score, quote, verified}}
+    evidence_json: Mapped[dict] = mapped_column(JSON)  # {answer_summary, missing_points, guards}
+    feedback_text: Mapped[str] = mapped_column(Text, default="")
+    sample_answer: Mapped[str] = mapped_column(Text, default="")
+    score_percent: Mapped[int] = mapped_column(Integer, default=0)
+
+    answer: Mapped[Answer] = relationship(back_populates="evaluation")
+
+
+class Report(Base):
+    __tablename__ = "reports"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    session_id: Mapped[str] = mapped_column(ForeignKey("sessions.id", ondelete="CASCADE"), unique=True, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="running")  # running | ready | failed
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    model: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    overall_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    report_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    warnings_json: Mapped[list] = mapped_column(JSON, default=list)
+    progress_done: Mapped[int] = mapped_column(Integer, default=0)
+    progress_total: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Textarea } from '../components/ui/field'
-import { wsUrl, type ServerMessage, type Turn } from '../lib/api'
+import { api, wsUrl, type ServerMessage, type Turn } from '../lib/api'
 
 type Phase = 'connecting' | 'thinking' | 'waiting' | 'complete' | 'error' | 'disconnected'
 
@@ -11,6 +11,9 @@ const MAX_ANSWER = 5000
 
 export function Interview() {
   const { sessionId = '' } = useParams()
+  const navigate = useNavigate()
+  const [reportError, setReportError] = useState<string | null>(null)
+  const [starting, setStarting] = useState(false)
   const socketRef = useRef<WebSocket | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const [turns, setTurns] = useState<Turn[]>([])
@@ -108,6 +111,19 @@ export function Interview() {
     if (window.confirm('End the interview now? Unanswered questions will be skipped.')) send({ type: 'end' })
   }
 
+  async function startReport() {
+    setStarting(true)
+    setReportError(null)
+    try {
+      // If a report already exists, just open it; generating is always the user's choice.
+      if (!(await api.getReport(sessionId))) await api.generateReport(sessionId)
+      navigate(`/sessions/${sessionId}/report`)
+    } catch (e) {
+      setReportError(e instanceof Error ? e.message : 'Could not start the report')
+      setStarting(false)
+    }
+  }
+
   const canAnswer = phase === 'waiting'
   const mmss = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`
 
@@ -181,10 +197,20 @@ export function Interview() {
       {phase === 'complete' ? (
         <Card className="space-y-2">
           <p className="font-medium">Interview complete.</p>
-          <p className="text-sm text-slate-500">Your feedback report arrives with Phase 4.</p>
-          <Link to="/" className="text-sm text-brand-600 underline">
-            Back to your interviews
-          </Link>
+          <p className="text-sm text-slate-500">When you are ready, generate your feedback report. Nothing is scored until you ask.</p>
+          {reportError && (
+            <p role="alert" className="text-sm text-red-700">
+              {reportError}
+            </p>
+          )}
+          <div className="flex items-center gap-4">
+            <Button onClick={startReport} disabled={starting}>
+              {starting ? 'Starting…' : 'Generate feedback report'}
+            </Button>
+            <Link to="/" className="text-sm text-brand-600 underline">
+              Back to your interviews
+            </Link>
+          </div>
         </Card>
       ) : (
         <div className="space-y-2">

@@ -1,6 +1,7 @@
 import hashlib
 
 from app.schemas.interview import AnswerAnalysis
+from app.schemas.report import AnswerEvaluation, DimScore, Insight, PlanStep, ReportNarrative
 from app.schemas.analysis import CandidateProfile, Employer, JDRequirements, Project, SkillItem
 
 
@@ -27,17 +28,54 @@ def fake_requirements() -> JDRequirements:
     )
 
 
+GOOD_QUOTE = "handling retries, monitoring and capacity planning"
+
+
+def fake_evaluation(score: int = 4, quote: str = GOOD_QUOTE, **kw) -> AnswerEvaluation:
+    dim = DimScore(score=score, quote=quote)
+    return AnswerEvaluation(
+        technical_accuracy=dim, depth=dim, relevance=dim, structure_clarity=dim, evidence=dim,
+        answer_summary=kw.get("summary", "Ran the service in production."), missing_points=kw.get("missing", ["failure modes", "metrics"]),
+        feedback=kw.get("feedback", "You gave a production example. Add the metrics you tracked."),
+    )
+
+
+def fake_narrative() -> ReportNarrative:
+    return ReportNarrative(
+        summary="You showed solid production experience with room to go deeper on trade-offs.",
+        strengths=[Insight(title=f"Strength {i}", detail="Specific detail.") for i in range(3)],
+        improvements=[Insight(title=f"Improve {i}", detail="Specific detail.") for i in range(3)],
+        improvement_plan=[PlanStep(timeframe="Week 1", focus="Depth", actions=["a", "b", "c"]),
+                          PlanStep(timeframe="Week 2", focus="Practice", actions=["d", "e", "f"])],
+    )
+
+
 class FakeLLM:
     def __init__(self, fail_with: Exception | None = None, embed_fail: bool = False,
                  questions: list | None = None, analyses: list | None = None):
         self.fail_with, self.embed_fail = fail_with, embed_fail
         self.questions = list(questions or [])  # strings to stream, or Exceptions to raise
         self.analyses = list(analyses or [])  # AnswerAnalysis, or Exceptions to raise
+        self.evaluations: list = []  # AnswerEvaluation or Exception, consumed in order; default = a good verified evaluation
+        self.narratives: list = []
+        self.samples: list = []
         self.calls: list[tuple[str, str, str]] = []
         self.question_calls = 0
         self.embed_calls = 0
 
     def chat_json(self, *, system, user, schema, model=None, temperature=0.1, max_tokens=None):
+        if schema is AnswerEvaluation:
+            self.calls.append((schema.__name__, system, user))
+            item = self.evaluations.pop(0) if self.evaluations else fake_evaluation()
+            if isinstance(item, Exception):
+                raise item
+            return item
+        if schema is ReportNarrative:
+            self.calls.append((schema.__name__, system, user))
+            item = self.narratives.pop(0) if self.narratives else fake_narrative()
+            if isinstance(item, Exception):
+                raise item
+            return item
         if schema is AnswerAnalysis:
             self.calls.append((schema.__name__, system, user))
             item = self.analyses.pop(0) if self.analyses else AnswerAnalysis(answer_quality="strong")
@@ -50,6 +88,13 @@ class FakeLLM:
         return fake_profile() if schema is CandidateProfile else fake_requirements()
 
     def stream_text(self, *, system, user, model=None, temperature=0.6, max_tokens=None):
+        if "Write the stronger sample answer" in user:
+            self.calls.append(("sample", system, user))
+            item = self.samples.pop(0) if self.samples else "A stronger answer would name the metrics you tracked."
+            if isinstance(item, Exception):
+                raise item
+            yield item
+            return
         self.calls.append(("question", system, user))
         self.question_calls += 1
         item = self.questions.pop(0) if self.questions else f"Generated question number {self.question_calls} about topics?"

@@ -65,6 +65,11 @@ export function Home() {
                   {s.target_role} · {formatDate(s.created_at)}
                 </p>
               </Link>
+              {(s.status === 'completed' || s.status === 'reported') && (
+                <Link to={`/sessions/${s.id}/report`} className="text-sm text-brand-600 underline">
+                  {s.status === 'reported' ? 'Report' : 'Get report'}
+                </Link>
+              )}
               <Badge>{s.interview_type}</Badge>
               <Badge>{s.question_count} questions</Badge>
               <Button variant="danger" onClick={() => remove(s)} aria-label={`Delete ${s.title}`}>

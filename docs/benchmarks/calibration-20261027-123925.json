@@ -1,0 +1,42 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "rows": [
+    {
+      "id": "redis_cache",
+      "scores": {
+        "strong": 100,
+        "average": 51,
+        "weak": 26
+      },
+      "ranked_correctly": true
+    },
+    {
+      "id": "async_python",
+      "scores": {
+        "strong": 96,
+        "average": 61,
+        "weak": 8
+      },
+      "ranked_correctly": true
+    },
+    {
+      "id": "team_conflict",
+      "scores": {
+        "strong": 94,
+        "average": 44,
+        "weak": 7
+      },
+      "ranked_correctly": true
+    },
+    {
+      "id": "postgres_index",
+      "scores": {
+        "strong": 100,
+        "average": 61,
+        "weak": 11
+      },
+      "ranked_correctly": true
+    }
+  ],
+  "avg_gap": 84.5
+}

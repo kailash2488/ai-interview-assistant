@@ -14,7 +14,7 @@ The full plan is in [docs/SOP.pdf](docs/SOP.pdf).
 | 1 | Foundation and document ingestion | Done |
 | 2 | LLM analysis (Ollama, profile/JD extraction, gap analysis) | Done (mistral:7b default; qwen2.5:7b benchmarked) |
 | 3 | Interview plan and text interview | Done |
-| 4 | Feedback and report | Not started |
+| 4 | Feedback and report | Done |
 | 5 | History, polish, hardening | Not started |
 | 6 | Voice mode (optional) | Not started |
 
@@ -91,14 +91,28 @@ On a CPU-only laptop the interviewer answers within about 10-20 s after a short 
 answer is analysed to decide on follow-ups. A smaller interviewer model (for example `AIA_INTERVIEWER_MODEL=llama3.2:3b`) trades
 some question quality for speed.
 
+### The feedback report
+
+Reports are created only when you click **Generate feedback report** after an interview (nothing is scored automatically).
+Each answer is scored 1-5 on five rubric dimensions (accuracy, depth, relevance, structure, evidence), every score with a quote from
+the answer. All numbers are computed in code; the model only writes the text. Guards keep small models honest: a score above 3 needs a
+quote that really appears in the answer, very short answers cannot score high on depth or evidence, and off-topic answers cannot be
+relevant. The report has an overall score with a verdict, scores by topic and by dimension, top strengths and improvement areas
+(strengths only from topics that scored 60 or more), a per-question breakdown with a stronger sample answer, communication notes
+(length, filler words, vague wording) and a two-week study plan.
+
+Check the evaluator on your own model with `python backend/scripts/calibrate.py`: it must rank hand-labelled strong, average and weak
+answers (`data/samples/calibration.json`) in the right order. With `gemini-3.5-flash-lite`: strong 94-100, average 44-61, weak 7-26.
+
 ### What works now
 
-- Web UI: create a session, run the analysis, review and correct the extracted skills and requirements, see the interview plan (topics only), and take the interview in a chat room with streamed questions, adaptive follow-ups and resume-after-reload, drag-and-drop or paste a resume, JD and extra documents, watch each file go Uploaded → Parsing → Ready, and view the extracted text and detected sections
+- Web UI: create a session, run the analysis, review and correct the extracted skills and requirements, see the interview plan (topics only), take the interview in a chat room with streamed questions, adaptive follow-ups and resume-after-reload, generate and read the feedback report, drag-and-drop or paste a resume, JD and extra documents, watch each file go Uploaded → Parsing → Ready, and view the extracted text and detected sections
 - API:
   - `POST /sessions`, `GET /sessions`, `GET /sessions/{id}`, `DELETE /sessions/{id}`
   - `POST /sessions/{id}/analyze` (starts profile, JD and gap analysis), `GET` and `PATCH /sessions/{id}/analysis`
   - `POST /sessions/{id}/plan`, `GET /sessions/{id}/plan` (topic outline only; the questions stay hidden)
   - `WS /sessions/{id}/interview` (messages in: `start`, `answer`, `end`; out: `state`, `thinking`, `token`, `question`, `complete`, `error`), `GET /sessions/{id}/interview` (transcript), `POST /sessions/{id}/finish`
+  - `POST /sessions/{id}/report` (starts generation, 202), `GET /sessions/{id}/report` (status, progress, and the report when ready)
   - `POST /sessions/{id}/documents` (multipart: `kind` = resume | jd | other, and `file`), `GET` list and detail, `DELETE`
 - Parsing: PDF (PyMuPDF with pdfplumber fallback), DOCX and TXT parsing, cleaning and section detection
 - Parsing runs in the background. Each document moves through `uploaded`, `parsing`, then `ready` or `failed`.

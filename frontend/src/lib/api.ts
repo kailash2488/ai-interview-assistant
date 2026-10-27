@@ -160,6 +160,65 @@ export interface LLMTestResult {
   message: string
 }
 
+export interface DimensionResult {
+  score: number
+  quote: string
+  verified: boolean
+}
+export interface QuestionReport {
+  order_no: number
+  topic: string
+  category: string
+  is_follow_up: boolean
+  question: string
+  answer: string
+  answer_summary: string
+  score_percent: number
+  dimensions: Record<string, DimensionResult>
+  missing_points: string[]
+  feedback: string
+  sample_answer: string
+  notes: string[]
+}
+export interface ReportBody {
+  overall_score: number
+  verdict: string
+  verdict_basis: string
+  target_role: string
+  summary: string
+  dimension_scores: Record<string, number>
+  areas: Array<{ name: string; category: string; score_percent: number; answers: number }>
+  strengths: Array<{ title: string; detail: string }>
+  improvements: Array<{ title: string; detail: string }>
+  questions: QuestionReport[]
+  communication: {
+    answers: number
+    avg_words: number
+    shortest_words: number
+    longest_words: number
+    one_line_answers: number
+    rambling_answers: number
+    filler_words: Record<string, number>
+    vague_phrases: Record<string, number>
+    avg_seconds: number | null
+    observations: string[]
+  }
+  improvement_plan: Array<{ timeframe: string; focus: string; actions: string[] }>
+  coverage: { planned_topics: number; questions_asked: number; evaluated: number; unanswered: number }
+}
+export interface Report {
+  session_id: string
+  status: 'running' | 'ready' | 'failed'
+  error: string | null
+  model: string | null
+  warnings: string[]
+  progress_done: number
+  progress_total: number
+  overall_score: number | null
+  report: ReportBody | null
+  updated_at: string
+}
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -226,6 +285,16 @@ export const api = {
     request<LLMSettings>('/settings/llm', { ...json(body), method: 'PUT' }),
   removeGeminiKey: () => request<LLMSettings>('/settings/llm/key', { method: 'DELETE' }),
   testLLM: () => request<LLMTestResult>('/settings/llm/test', { method: 'POST' }),
+  generateReport: (sid: string) => request<Report>(`/sessions/${sid}/report`, { method: 'POST' }),
+  /** Resolves to null when no report has been requested yet. */
+  getReport: async (sid: string): Promise<Report | null> => {
+    try {
+      return await request<Report>(`/sessions/${sid}/report`)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null
+      throw e
+    }
+  },
   createPlan: (sid: string) => request<Plan>(`/sessions/${sid}/plan`, { method: 'POST' }),
   getPlan: async (sid: string): Promise<Plan | null> => {
     try {
