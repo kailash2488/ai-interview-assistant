@@ -1,29 +1,54 @@
-import { Link, Outlet } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { NavLink, Outlet } from 'react-router-dom'
+import { cn } from '../lib/utils'
+import { Logo } from './Logo'
+import { UserMenu } from './UserMenu'
 
-export function Layout() {
+const NAV = [
+  { to: '/', label: 'Interviews', end: true },
+  { to: '/history', label: 'Progress', end: false },
+  { to: '/settings', label: 'Settings', end: false },
+]
+
+/** The signed-in app frame. Pages render in the <Outlet/> (or as children for the home route). */
+export function AppShell({ children }: { children?: ReactNode }) {
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-          <Link to="/" className="text-lg font-semibold text-brand-700">
-            AI Interview Assistant
-          </Link>
-          <nav className="flex items-center gap-4 text-sm">
-            <Link to="/" className="text-slate-600 hover:text-brand-700">
-              Interviews
-            </Link>
-            <Link to="/history" className="text-slate-600 hover:text-brand-700">
-              Progress
-            </Link>
-            <Link to="/settings" className="text-slate-600 hover:text-brand-700">
-              Settings
-            </Link>
-          </nav>
+    <div className="bg-glow min-h-screen">
+      <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-6 px-4">
+          <div className="flex items-center gap-8">
+            <Logo />
+            <nav aria-label="Main" className="hidden items-center gap-1 sm:flex">
+              {NAV.map((n) => (
+                <NavLink
+                  key={n.to}
+                  to={n.to}
+                  end={n.end}
+                  className={({ isActive }) =>
+                    cn('rounded-lg px-3 py-1.5 text-sm font-medium transition-colors', isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900')
+                  }
+                >
+                  {n.label}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+          <UserMenu />
         </div>
+        <nav aria-label="Main (mobile)" className="flex gap-1 border-t border-slate-100 px-3 py-1.5 sm:hidden">
+          {NAV.map((n) => (
+            <NavLink
+              key={n.to}
+              to={n.to}
+              end={n.end}
+              className={({ isActive }) => cn('flex-1 rounded-lg px-3 py-1.5 text-center text-sm font-medium', isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600')}
+            >
+              {n.label}
+            </NavLink>
+          ))}
+        </nav>
       </header>
-      <main className="mx-auto max-w-4xl px-4 py-8">
-        <Outlet />
-      </main>
+      <main className="mx-auto max-w-5xl px-4 py-10">{children ?? <Outlet />}</main>
     </div>
   )
 }

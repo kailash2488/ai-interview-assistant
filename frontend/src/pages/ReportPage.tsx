@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { QuestionCard, DIMENSION_LABELS } from '../components/QuestionCard'
+import { Stepper } from '../components/Stepper'
 import { ScoreBars } from '../components/ScoreBars'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -110,11 +111,12 @@ export function ReportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <Stepper sessionId={sessionId} current="report" />
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           {back}
-          <h1 className="mt-1 text-2xl font-semibold">Feedback report</h1>
-          <p className="text-sm text-slate-500">{r.target_role}</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Feedback report</h1>
+          <p className="mt-1 text-sm text-slate-500">{r.target_role}</p>
         </div>
         <div className="flex gap-2">
           <a href={reportPdfUrl(sessionId)} download>
@@ -139,13 +141,16 @@ export function ReportPage() {
         </p>
       ))}
 
-      <Card className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <div className="text-center sm:w-44" aria-label={`Overall score ${r.overall_score} out of 100`}>
-          <div className="text-6xl font-semibold tabular-nums text-slate-900">{r.overall_score}</div>
-          <div className="text-sm text-slate-500">out of 100</div>
+      <Card className="flex flex-col gap-6 border-brand-100 bg-gradient-to-br from-white via-white to-brand-50/70 p-7 sm:flex-row sm:items-center">
+        <div className="text-center sm:w-48" aria-label={`Overall score ${r.overall_score} out of 100`}>
+          <div className="text-gradient text-7xl font-semibold tabular-nums leading-none">{r.overall_score}</div>
+          <div className="mt-1 text-sm text-slate-500">out of 100</div>
+          <div aria-hidden className="mx-auto mt-3 h-1.5 w-32 overflow-hidden rounded-full bg-slate-200">
+            <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-fuchsia-500" style={{ width: `${Math.max(0, Math.min(100, r.overall_score))}%` }} />
+          </div>
         </div>
         <div className="space-y-2">
-          <p className="text-lg font-semibold">{r.verdict}</p>
+          <p className="text-xl font-semibold text-slate-900">{r.verdict}</p>
           <p className="text-sm text-slate-600">{r.summary}</p>
           <p className="text-xs text-slate-400">
             {r.verdict_basis} {r.coverage.evaluated} of {r.coverage.planned_topics} planned topics were scored

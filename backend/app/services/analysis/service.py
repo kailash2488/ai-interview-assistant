@@ -9,6 +9,7 @@ from app.schemas.analysis import CandidateProfile, JDRequirements
 from app.services import vectorstore
 from app.services.analysis.gap import analyse_gap
 from app.services.llm.client import LLMError, get_llm
+from app.services.llm.user_settings import config_for_user
 from app.services.llm.prompts import render, wrap_document
 
 log = logging.getLogger(__name__)
@@ -40,8 +41,9 @@ def run_analysis(session_id: str) -> None:
         indexable = [
             {"id": d.id, "kind": d.kind, "filename": d.filename, "sections": d.sections_json or []} for d in docs
         ]
+        owner = db.get(InterviewSession, session_id)
         try:
-            llm = get_llm()
+            llm = get_llm(config_for_user(db, owner.user_id if owner else None))
             profile = extract_profile(llm, resume)
             requirements = extract_requirements(llm, jd)
             row.profile_json = profile.model_dump(mode="json")

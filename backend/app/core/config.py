@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     llm_num_ctx: int = 6144
     llm_max_retries: int = 1
 
+    # --- accounts ---
+    allow_signup: bool = True            # set AIA_ALLOW_SIGNUP=false once your accounts exist
+    session_days: int = 30
+    cookie_name: str = "aia_session"
+    cookie_secure: bool = False          # set AIA_COOKIE_SECURE=true when serving over HTTPS
+    secret_key: SecretStr | None = None  # encrypts stored API keys; generated into data/secret.key if unset
+    secret_key_path: Path = BACKEND_DIR / "data" / "secret.key"
+    max_login_failures: int = 5
+    login_lockout_minutes: int = 15
+
     runtime_settings_path: Path = BACKEND_DIR / "data" / "llm_settings.json"  # written by the Settings screen
 
     qdrant_path: str = str(BACKEND_DIR / "data" / "qdrant")  # ":memory:" for tests

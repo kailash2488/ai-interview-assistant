@@ -13,7 +13,7 @@ LONG = "I built and operated this in production for two years, handling retries,
 
 @pytest.fixture()
 def sid(client, monkeypatch):
-    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda: FakeLLM())
+    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda *a, **k: FakeLLM())
     sid = _ready_session(client)
     client.post(f"/sessions/{sid}/analyze")
     assert client.post(f"/sessions/{sid}/plan").status_code == 201

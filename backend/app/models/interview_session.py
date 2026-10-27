@@ -19,6 +19,8 @@ class InterviewSession(Base):
     __tablename__ = "sessions"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    # Owner. NULL only for interviews created before accounts existed; the first account to sign up adopts them.
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     title: Mapped[str] = mapped_column(String(200))
     target_role: Mapped[str] = mapped_column(String(200))
     interview_type: Mapped[str] = mapped_column(String(20))

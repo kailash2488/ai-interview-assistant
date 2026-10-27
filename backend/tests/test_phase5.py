@@ -18,7 +18,7 @@ from tests.test_report_api import done, generate, planned, use_llm  # noqa: F401
 
 def finished_report(client, monkeypatch, score: int, title: str = "Practice 1", role: str = "Python Developer"):
     """A session with a finished interview and a ready report whose answers all scored `score` out of 5."""
-    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda: FakeLLM())
+    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda *a, **k: FakeLLM())
     sid = client.post("/sessions", json={"title": title, "target_role": role}).json()["id"]
     _upload(client, sid, "resume", "r.txt", RESUME.encode())
     _upload(client, sid, "jd", "jd.txt", JD.encode())
@@ -91,11 +91,12 @@ def test_data_summary_and_delete_all(client, done, monkeypatch):
     assert not store.collection_exists(COLLECTION) or store.count(COLLECTION).count == 0
 
 
-def test_delete_all_keeps_the_saved_provider_settings(client):
-    settings.runtime_settings_path.write_text(json.dumps({"provider": "gemini"}))
+def test_delete_all_keeps_the_account_and_its_model_settings(client):
+    client.put("/settings/llm", json={"provider": "gemini", "gemini_api_key": "AIzaSomeKey1234567890abcd"})
+    _create_session(client)
     client.request("DELETE", "/data", json={"confirm": "DELETE ALL"})
-    assert settings.runtime_settings_path.exists()
-    settings.runtime_settings_path.unlink()
+    assert client.get("/auth/me").status_code == 200
+    assert client.get("/settings/llm").json()["gemini_key_hint"] == "…abcd"
 
 
 # ---------- history and compare ----------

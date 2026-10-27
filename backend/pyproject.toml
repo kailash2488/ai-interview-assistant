@@ -17,6 +17,7 @@ dependencies = [
     "httpx",
     "qdrant-client",
     "langchain-text-splitters",
+    "cryptography",
 ]
 
 [project.optional-dependencies]

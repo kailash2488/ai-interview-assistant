@@ -142,9 +142,13 @@ class OllamaClient:
         return vectors
 
 
-def get_llm() -> LLMClient:
-    if settings.llm_provider == "gemini":
+def get_llm(config=None) -> LLMClient:
+    """`config` (an LLMConfig) is the signed-in user's choice; without it the server defaults are used."""
+    from app.services.llm.user_settings import server_default
+
+    config = config or server_default()
+    if config.provider == "gemini":
         from app.services.llm.gemini import GeminiClient
 
-        return GeminiClient()
+        return GeminiClient(config)
     return OllamaClient()

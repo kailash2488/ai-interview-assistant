@@ -3,17 +3,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analysis, data, documents, history, interview, llm_settings, report, sessions
+from app.api import analysis, auth, data, documents, history, interview, llm_settings, report, sessions
 from app.core.config import settings
 from app.core.db import init_db
-from app.services.llm import runtime
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
     init_db()
-    runtime.apply()
     yield
 
 
@@ -24,6 +22,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(auth.router)
 app.include_router(sessions.router)
 app.include_router(documents.router)
 app.include_router(analysis.router)

@@ -1,4 +1,4 @@
-import { Upload } from 'lucide-react'
+import { Briefcase, FileText, Paperclip, Upload } from 'lucide-react'
 import { useRef, useState, type DragEvent } from 'react'
 import { api, type DocumentItem, type DocumentKind } from '../lib/api'
 import { ACCEPTED_EXTENSIONS, MAX_UPLOAD_MB, validateFile } from '../lib/files'
@@ -70,11 +70,16 @@ export function DocumentSlot({ sessionId, kind, title, description, required, mu
 
   return (
     <Card className="space-y-4">
-      <div>
-        <h2 className="text-base font-semibold">
-          {title} {required && <span className="text-sm font-normal text-red-600">required</span>}
-        </h2>
-        <p className="text-sm text-slate-500">{description}</p>
+      <div className="flex items-start gap-4">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+          {kind === 'resume' ? <FileText className="size-5" aria-hidden /> : kind === 'jd' ? <Briefcase className="size-5" aria-hidden /> : <Paperclip className="size-5" aria-hidden />}
+        </span>
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">
+            {title} {required && <span className="ml-1 rounded-full bg-red-50 px-2 py-0.5 align-middle text-xs font-medium text-red-600">required</span>}
+          </h2>
+          <p className="text-sm text-slate-500">{description}</p>
+        </div>
       </div>
 
       <div
@@ -85,14 +90,14 @@ export function DocumentSlot({ sessionId, kind, title, description, required, mu
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         className={cn(
-          'flex flex-col items-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors',
-          dragging ? 'border-brand-500 bg-brand-50' : 'border-slate-300 bg-white',
+          'flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed px-4 py-7 text-center transition-colors',
+          dragging ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-slate-50/60 hover:border-brand-300 hover:bg-brand-50/40',
         )}
       >
-        <Upload className="size-6 text-slate-400" aria-hidden />
+        <span className="flex size-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200"><Upload className="size-5 text-brand-500" aria-hidden /></span>
         <p className="text-sm text-slate-600">
           Drag &amp; drop {multiple ? 'files' : 'a file'} here, or{' '}
-          <button type="button" className="font-medium text-brand-600 underline" onClick={() => inputRef.current?.click()}>
+          <button type="button" className="font-medium text-brand-600 underline decoration-brand-300 underline-offset-2 hover:text-brand-700" onClick={() => inputRef.current?.click()}>
             browse
           </button>
         </p>

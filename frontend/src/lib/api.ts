@@ -220,6 +220,13 @@ export interface Report {
   updated_at: string
 }
 
+export interface User {
+  id: string
+  email: string
+  name: string
+  created_at: string
+}
+
 export interface HistoryItem {
   session_id: string
   title: string
@@ -262,6 +269,8 @@ export interface DataSummary {
 
 export const reportPdfUrl = (sid: string) => `${BASE}/sessions/${sid}/report/pdf`
 
+export const AUTH_EXPIRED = 'auth:expired'
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -273,9 +282,13 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response
   try {
-    res = await fetch(`${BASE}${path}`, init)
+    res = await fetch(`${BASE}${path}`, { credentials: 'include', ...init })
   } catch {
     throw new ApiError(0, 'Cannot reach the backend. Is it running on port 8000?')
+  }
+  if (res.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/signup') && !path.startsWith('/auth/me')) {
+    // The session ended (expired, signed out elsewhere, password changed): let the app send the user to the login page.
+    window.dispatchEvent(new Event(AUTH_EXPIRED))
   }
   if (!res.ok) {
     let message = res.statusText
@@ -298,6 +311,23 @@ const json = (body: unknown): RequestInit => ({
 })
 
 export const api = {
+  authConfig: () => request<{ allow_signup: boolean }>('/auth/config'),
+  /** Resolves to null when nobody is signed in. */
+  me: async (): Promise<User | null> => {
+    try {
+      return await request<User>('/auth/me')
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) return null
+      throw e
+    }
+  },
+  signup: (body: { email: string; name: string; password: string }) => request<User>('/auth/signup', json(body)),
+  login: (body: { email: string; password: string }) => request<User>('/auth/login', json(body)),
+  logout: () => request<void>('/auth/logout', { method: 'POST' }),
+  changePassword: (body: { current_password: string; new_password: string }) => request<void>('/auth/change-password', json(body)),
+  deleteAccount: (password: string) =>
+    request<void>('/auth/me', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) }),
+
   listSessions: () => request<Session[]>('/sessions'),
   getSession: (id: string) => request<Session>(`/sessions/${id}`),
   createSession: (payload: SessionCreate) => request<Session>('/sessions', json(payload)),

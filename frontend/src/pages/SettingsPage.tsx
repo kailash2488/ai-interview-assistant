@@ -1,4 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { AccountCard } from '../components/AccountCard'
+import { PageHeader } from '../components/ui/page'
+import { useOptionalAuth } from '../lib/auth'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Field, Input, Select } from '../components/ui/field'
@@ -19,6 +22,7 @@ const OPTIONS: Array<{ id: Provider; title: string; blurb: string }> = [
 ]
 
 export function SettingsPage() {
+  const auth = useOptionalAuth()
   const [saved, setSaved] = useState<LLMSettings | null>(null)
   const [provider, setProvider] = useState<Provider>('ollama')
   const [model, setModel] = useState('gemini-3.5-flash-lite')
@@ -103,12 +107,13 @@ export function SettingsPage() {
   const dirty = saved !== null && (provider !== saved.provider || model !== saved.gemini_model || key.trim() !== '')
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="text-sm text-slate-500">Choose which model runs the analysis and the interview.</p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-8">
+      <PageHeader title="Settings" subtitle="Your account, the AI model that runs your interviews, and your data." />
 
+      {auth?.user && <AccountCard />}
+
+      <section aria-labelledby="ai-model" className="space-y-4">
+      <h2 id="ai-model" className="text-lg font-semibold text-slate-900">AI model</h2>
       <form onSubmit={save} className="space-y-4">
         <fieldset className="space-y-3">
           <legend className="sr-only">Model provider</legend>
@@ -116,12 +121,12 @@ export function SettingsPage() {
             <label
               key={o.id}
               className={cn(
-                'block cursor-pointer rounded-xl border bg-white p-4 shadow-sm',
-                provider === o.id ? 'border-brand-500 ring-1 ring-brand-500' : 'border-slate-200',
+                'block cursor-pointer rounded-2xl border bg-white p-5 shadow-sm transition-all hover:border-slate-300',
+                provider === o.id ? 'border-brand-500 ring-4 ring-brand-500/10' : 'border-slate-200',
               )}
             >
               <span className="flex items-center gap-3">
-                <input type="radio" name="provider" value={o.id} checked={provider === o.id} onChange={() => setProvider(o.id)} />
+                <input type="radio" name="provider" value={o.id} checked={provider === o.id} onChange={() => setProvider(o.id)} className="accent-brand-600" />
                 <span className="font-medium">{o.title}</span>
               </span>
               <span className="mt-1 block pl-7 text-sm text-slate-500">{o.blurb}</span>
@@ -173,7 +178,7 @@ export function SettingsPage() {
               </Select>
             </Field>
             {saved?.gemini_key_source === 'settings' && (
-              <Button type="button" variant="danger" onClick={removeKey}>
+              <Button type="button" variant="danger" onClick={removeKey} className="border border-red-200">
                 Remove saved key
               </Button>
             )}
@@ -200,6 +205,7 @@ export function SettingsPage() {
         </div>
         {needsKey && <p className="text-xs text-slate-500">Paste a key to use Gemini.</p>}
       </form>
+      </section>
 
  {test && (
         <p role="status" className={cn('rounded-md p-3 text-sm', test.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700')}>
@@ -223,7 +229,7 @@ export function SettingsPage() {
           <Field label="Type DELETE ALL to enable the button">
             <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" />
           </Field>
-          <Button type="button" variant="danger" disabled={confirmText !== 'DELETE ALL' || data.sessions === 0} onClick={wipe}>
+          <Button type="button" variant="danger" disabled={confirmText !== 'DELETE ALL' || data.sessions === 0} onClick={wipe} className="border border-red-200 disabled:border-slate-200 disabled:text-slate-400">
             Delete all my data
           </Button>
         </Card>

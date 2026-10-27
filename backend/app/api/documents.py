@@ -6,10 +6,11 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPExcepti
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import current_user
 from app.api.sessions import get_session_or_404
 from app.core.config import settings
 from app.core.db import get_db
-from app.models import Document
+from app.models import Document, User
 from app.schemas.document import DocumentDetail, DocumentKind, DocumentOut
 from app.services.ingestion.parsers import ALLOWED_EXTENSIONS, ParseError, validate_signature
 from app.services import vectorstore
@@ -46,8 +47,9 @@ async def upload_document(
     kind: DocumentKind = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    user: User = Depends(current_user),
 ):
-    session = get_session_or_404(session_id, db)
+    session = get_session_or_404(session_id, db, user)
     filename = _safe_name(file.filename)
     ext = Path(filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -92,13 +94,14 @@ async def upload_document(
 
 
 @router.get("", response_model=list[DocumentOut])
-def list_documents(session_id: str, db: Session = Depends(get_db)):
-    get_session_or_404(session_id, db)
+def list_documents(session_id: str, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    get_session_or_404(session_id, db, user)
     return db.scalars(select(Document).where(Document.session_id == session_id).order_by(Document.created_at)).all()
 
 
 @router.get("/{document_id}", response_model=DocumentDetail)
-def get_document(session_id: str, document_id: str, db: Session = Depends(get_db)):
+def get_document(session_id: str, document_id: str, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    get_session_or_404(session_id, db, user)
     doc = db.get(Document, document_id)
     if doc is None or doc.session_id != session_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
@@ -106,12 +109,13 @@ def get_document(session_id: str, document_id: str, db: Session = Depends(get_db
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_document(session_id: str, document_id: str, db: Session = Depends(get_db)):
+def delete_document(session_id: str, document_id: str, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    session = get_session_or_404(session_id, db, user)
     doc = db.get(Document, document_id)
     if doc is None or doc.session_id != session_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
     if doc.kind in SINGLETON_KINDS:
-        _reset_analysis(db, get_session_or_404(session_id, db))
+        _reset_analysis(db, session)
     Path(doc.stored_path).unlink(missing_ok=True)
     db.delete(doc)
     db.commit()

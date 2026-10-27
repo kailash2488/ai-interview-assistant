@@ -10,7 +10,7 @@ from tests.test_engine import LONG
 
 @pytest.fixture()
 def analysed(client, monkeypatch):
-    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda: FakeLLM())
+    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda *a, **k: FakeLLM())
     sid = _ready_session(client)
     client.post(f"/sessions/{sid}/analyze")
     return sid
@@ -23,7 +23,7 @@ def planned(client, analysed):
 
 
 def use_llm(monkeypatch, llm):
-    monkeypatch.setattr("app.services.interview.engine.get_llm", lambda: llm)
+    monkeypatch.setattr("app.services.interview.engine.get_llm", lambda *a, **k: llm)
     return llm
 
 

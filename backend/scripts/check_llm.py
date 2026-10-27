@@ -12,7 +12,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from pydantic import BaseModel  # noqa: E402
 
 from app.core.config import settings  # noqa: E402
-from app.services.llm import runtime  # noqa: E402
 from app.services.llm.client import LLMError, get_llm  # noqa: E402
 
 
@@ -22,7 +21,6 @@ class Check(BaseModel):
 
 
 def main() -> int:
-    runtime.apply()  # honour the choice saved on the Settings page
     print(f"provider={settings.llm_provider}")
     try:
         llm = get_llm()

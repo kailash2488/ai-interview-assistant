@@ -4,6 +4,7 @@ ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 COPY pyproject.toml ./
 RUN mkdir -p app && touch app/__init__.py && pip install .
 COPY app ./app
+COPY scripts ./scripts
 # Run as an unprivileged user; data and uploads live on volumes owned by it.
 RUN useradd --create-home --uid 1000 appuser && mkdir -p data uploads && chown -R appuser:appuser /srv
 USER appuser

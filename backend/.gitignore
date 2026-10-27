@@ -3,3 +3,4 @@ uploads/
 data/qdrant/
 data/llm_settings.json
 .coverage
+data/secret.key

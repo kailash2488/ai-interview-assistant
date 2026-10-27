@@ -10,7 +10,7 @@ from tests.test_api import _create_session, _upload
 @pytest.fixture()
 def llm(monkeypatch):
     fake = FakeLLM()
-    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda: fake)
+    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda *a, **k: fake)
     return fake
 
 
@@ -62,7 +62,7 @@ def test_analysis_indexes_documents_and_cleans_up(client, llm):
 
 
 def test_embedding_failure_is_a_warning_not_a_failure(client, monkeypatch):
-    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda: FakeLLM(embed_fail=True))
+    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda *a, **k: FakeLLM(embed_fail=True))
     sid = _ready_session(client)
     client.post(f"/sessions/{sid}/analyze")
     body = client.get(f"/sessions/{sid}/analysis").json()
@@ -70,13 +70,13 @@ def test_embedding_failure_is_a_warning_not_a_failure(client, monkeypatch):
 
 
 def test_llm_failure_marks_analysis_failed_and_retry_works(client, monkeypatch):
-    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda: FakeLLM(fail_with=LLMUnavailable("Cannot reach Ollama")))
+    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda *a, **k: FakeLLM(fail_with=LLMUnavailable("Cannot reach Ollama")))
     sid = _ready_session(client)
     client.post(f"/sessions/{sid}/analyze")
     body = client.get(f"/sessions/{sid}/analysis").json()
     assert body["status"] == "failed" and body["error"] == "Cannot reach Ollama" and body["profile"] is None
 
-    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda: FakeLLM())
+    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda *a, **k: FakeLLM())
     assert client.post(f"/sessions/{sid}/analyze").status_code == 202
     assert client.get(f"/sessions/{sid}/analysis").json()["status"] == "ready"
 
@@ -102,10 +102,10 @@ def test_patch_recomputes_gap(client, llm):
 
 def test_patch_rejected_unless_ready_and_validated(client, monkeypatch):
     sid = _ready_session(client)
-    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda: FakeLLM(fail_with=LLMUnavailable("down")))
+    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda *a, **k: FakeLLM(fail_with=LLMUnavailable("down")))
     client.post(f"/sessions/{sid}/analyze")
     assert client.patch(f"/sessions/{sid}/analysis", json={}).status_code == 409
-    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda: FakeLLM())
+    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda *a, **k: FakeLLM())
     client.post(f"/sessions/{sid}/analyze")
     assert client.patch(f"/sessions/{sid}/analysis", json={"profile": {"skills": "x"}}).status_code == 422
 

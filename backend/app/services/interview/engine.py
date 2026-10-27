@@ -22,6 +22,7 @@ from app.schemas.interview import AnswerAnalysis, Category, InterviewPlan, PlanI
 from app.services.interview import interviewer
 from app.services.interview.text import is_duplicate, word_count
 from app.services.llm.client import LLMClient, LLMInvalidOutput, get_llm
+from app.services.llm.user_settings import config_for_user
 
 log = logging.getLogger(__name__)
 
@@ -52,7 +53,9 @@ class InterviewEngine:
     @property
     def llm(self) -> LLMClient:
         if self._llm is None:
-            self._llm = get_llm()
+            with self._db_factory() as db:
+                owner = db.get(InterviewSession, self.session_id)
+                self._llm = get_llm(config_for_user(db, owner.user_id if owner else None))
         return self._llm
 
     # ---------- loading ----------

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ChipList } from '../components/ChipList'
+import { Stepper } from '../components/Stepper'
+import { PageHeader } from '../components/ui/page'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -105,11 +107,8 @@ export function Analysis() {
 
   return (
     <div className="space-y-6">
-      <div>
-        {back}
-        <h1 className="mt-1 text-2xl font-semibold">Analysis review</h1>
-        <p className="text-sm text-slate-500">Check what was extracted and fix mistakes before the interview plan is built.</p>
-      </div>
+      <Stepper sessionId={sessionId} current="analysis" />
+      <PageHeader title="Analysis review" back={{ to: `/sessions/${sessionId}/upload`, label: 'Documents' }} subtitle="Check what was extracted and fix mistakes before the interview plan is built." />
 
       {error && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 

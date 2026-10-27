@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Stepper } from '../components/Stepper'
+import { PageHeader } from '../components/ui/page'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -38,33 +40,32 @@ export function PlanPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link to={`/sessions/${sessionId}/analysis`} className="text-sm text-slate-500 hover:underline">
-          ← Analysis
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold">Interview plan</h1>
-        <p className="text-sm text-slate-500">
-          These are the topics, in order. The questions stay hidden so the interview feels real, and follow-ups may be added on the way.
-        </p>
-      </div>
-      <Card>
-        <ol className="divide-y divide-slate-100">
+    <div>
+      <Stepper sessionId={sessionId} current="plan" />
+      <PageHeader
+        title="Interview plan"
+        back={{ to: `/sessions/${sessionId}/analysis`, label: 'Analysis' }}
+        subtitle="These are the topics, in order. The questions stay hidden so the interview feels real, and follow-ups may be added on the way."
+      />
+      <Card className="p-2 sm:p-3">
+        <ol>
           {plan.topics.map((t) => (
-            <li key={t.index} className="flex items-center gap-3 py-2.5">
-              <span className="w-6 text-sm text-slate-400">{t.index + 1}</span>
-              <span className="min-w-0 flex-1 truncate">{t.topic}</span>
-              <Badge tone="info">{LABELS[t.category]}</Badge>
+            <li key={t.index} className="flex items-center gap-4 rounded-xl px-4 py-3 transition-colors hover:bg-slate-50">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-700">{t.index + 1}</span>
+              <span className="min-w-0 flex-1 truncate font-medium text-slate-900">{t.topic}</span>
+              <Badge tone="brand">{LABELS[t.category]}</Badge>
               <Badge>{t.difficulty}</Badge>
             </li>
           ))}
         </ol>
       </Card>
-      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
-        <p className="text-sm text-slate-600">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-fuchsia-50 p-5">
+        <p className="max-w-xl text-sm text-slate-600">
           Answer one question at a time. Scores are not shown during the interview. If you use a local model, close other heavy apps so it stays fast.
         </p>
-        <Button onClick={() => navigate(`/sessions/${sessionId}/interview`)}>Start interview</Button>
+        <Button size="lg" onClick={() => navigate(`/sessions/${sessionId}/interview`)}>
+          Start interview
+        </Button>
       </div>
     </div>
   )

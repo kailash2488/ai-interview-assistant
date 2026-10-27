@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ScoreBars } from '../components/ScoreBars'
 import { Button } from '../components/ui/button'
+import { PageHeader } from '../components/ui/page'
 import { Card } from '../components/ui/card'
 import { Field, Select } from '../components/ui/field'
 import { api, type Comparison, type DeltaRow, type HistoryItem } from '../lib/api'
@@ -88,10 +89,7 @@ export function HistoryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Your progress</h1>
-        <p className="text-sm text-slate-500">Interviews with a finished report, oldest first. Compare two attempts to see what improved.</p>
-      </div>
+      <PageHeader title="Your progress" subtitle="Interviews with a finished report, oldest first. Compare two attempts to see what improved." />
       {error && (
         <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
           {error}

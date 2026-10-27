@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { LogoMark } from '../components/Logo'
+import { Stepper } from '../components/Stepper'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Textarea } from '../components/ui/field'
@@ -127,21 +129,26 @@ export function Interview() {
   const canAnswer = phase === 'waiting'
   const mmss = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`
 
+  const pct = progress.total > 0 ? Math.min(100, Math.round((Math.min(progress.asked, progress.total) / progress.total) * 100)) : 0
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <Stepper sessionId={sessionId} current="interview" />
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Link to="/" className="text-sm text-slate-500 hover:underline">
-            ← All interviews
-          </Link>
-          <h1 className="text-2xl font-semibold">Interview</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Interview</h1>
+          {progress.total > 0 && (
+            <div className="mt-2 flex items-center gap-3">
+              <span aria-label="progress" className="text-sm text-slate-600">
+                Question {Math.min(progress.asked, progress.total)} of {progress.total}
+              </span>
+              <span aria-hidden className="h-1.5 w-40 overflow-hidden rounded-full bg-slate-200">
+                <span className="block h-full rounded-full bg-gradient-to-r from-brand-500 to-fuchsia-500 transition-all duration-500" style={{ width: `${pct}%` }} />
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3 text-sm text-slate-600">
-          {progress.total > 0 && (
-            <span aria-label="progress">
-              Question {Math.min(progress.asked, progress.total)} of {progress.total}
-            </span>
-          )}
           {canAnswer && <span className="tabular-nums text-slate-400">{mmss}</span>}
           {phase !== 'complete' && (
             <Button variant="secondary" onClick={endInterview} disabled={phase === 'connecting' || phase === 'disconnected'}>
@@ -151,23 +158,31 @@ export function Interview() {
         </div>
       </div>
 
-      <Card className="space-y-4" aria-live="polite">
+      <Card className="space-y-5 bg-gradient-to-b from-white to-slate-50/60 p-5 sm:p-7" aria-live="polite">
         {turns.map((t) => (
-          <div key={t.question_id} className="space-y-2">
-            <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-2.5 text-sm">
-              {t.ack && <p className="mb-1 text-slate-500">{t.ack}</p>}
-              <p>{t.text}</p>
+          <div key={t.question_id} className="space-y-3">
+            <div className="flex items-start gap-3">
+              <LogoMark className="mt-0.5 size-8 shrink-0" />
+              <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 text-sm leading-relaxed text-slate-800 shadow-sm">
+                {t.ack && <p className="mb-1 text-slate-400">{t.ack}</p>}
+                <p>{t.text}</p>
+              </div>
             </div>
             {t.answer && (
-              <div className="ml-auto max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-tr-sm bg-brand-600 px-4 py-2.5 text-sm text-white">
-                {t.answer}
+              <div className="flex justify-end">
+                <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-tr-sm bg-gradient-to-br from-brand-500 to-brand-700 px-4 py-3 text-sm leading-relaxed text-white shadow-sm">
+                  {t.answer}
+                </div>
               </div>
             )}
           </div>
         ))}
         {phase === 'thinking' && (
-          <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-2.5 text-sm text-slate-600" role="status">
-            {streaming || 'The interviewer is thinking…'}
+          <div className="flex items-start gap-3">
+            <LogoMark className="mt-0.5 size-8 shrink-0" />
+            <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm" role="status">
+              {streaming || 'The interviewer is thinking…'}
+            </div>
           </div>
         )}
         {phase === 'connecting' && <p className="text-sm text-slate-500">Connecting…</p>}
@@ -175,7 +190,7 @@ export function Interview() {
       </Card>
 
       {phase === 'error' && error && (
-        <div role="alert" className="flex items-center justify-between gap-3 rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-xl bg-red-50 p-3.5 text-sm text-red-700">
           <span>{error.message}</span>
           {error.retryable && (
             <Button variant="secondary" onClick={() => send({ type: 'start' })}>
@@ -186,7 +201,7 @@ export function Interview() {
       )}
 
       {phase === 'disconnected' && (
-        <div role="alert" className="flex items-center justify-between gap-3 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 p-3.5 text-sm text-amber-800">
           <span>Connection lost. Your answers so far are saved.</span>
           <Button variant="secondary" onClick={connect}>
             Reconnect
@@ -195,27 +210,27 @@ export function Interview() {
       )}
 
       {phase === 'complete' ? (
-        <Card className="space-y-2">
-          <p className="font-medium">Interview complete.</p>
-          <p className="text-sm text-slate-500">When you are ready, generate your feedback report. Nothing is scored until you ask.</p>
+        <Card className="space-y-3 border-brand-200 bg-gradient-to-br from-brand-50 to-white">
+          <p className="text-xl font-semibold text-slate-900">Interview complete.</p>
+          <p className="text-sm text-slate-600">When you are ready, generate your feedback report. Nothing is scored until you ask.</p>
           {reportError && (
             <p role="alert" className="text-sm text-red-700">
               {reportError}
             </p>
           )}
-          <div className="flex items-center gap-4">
-            <Button onClick={startReport} disabled={starting}>
+          <div className="flex flex-wrap items-center gap-4 pt-1">
+            <Button size="lg" onClick={startReport} disabled={starting}>
               {starting ? 'Starting…' : 'Generate feedback report'}
             </Button>
-            <Link to="/" className="text-sm text-brand-600 underline">
+            <Link to="/" className="text-sm font-medium text-brand-700 hover:underline">
               Back to your interviews
             </Link>
           </div>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <Card className="space-y-3 p-4 sm:p-5">
           <Textarea
-            rows={5}
+            rows={4}
             value={draft}
             maxLength={MAX_ANSWER}
             disabled={!canAnswer}
@@ -228,8 +243,9 @@ export function Interview() {
             }}
             placeholder={canAnswer ? 'Type your answer… (Ctrl+Enter to send)' : 'Wait for the next question…'}
             aria-label="Your answer"
+            className="resize-none border-0 bg-transparent p-1 shadow-none focus:ring-0"
           />
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3">
             <span className="text-xs text-slate-400">
               {draft.length}/{MAX_ANSWER}
             </span>
@@ -237,7 +253,7 @@ export function Interview() {
               Send answer
             </Button>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   )

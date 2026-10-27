@@ -179,10 +179,10 @@ def test_stream_errors(monkeypatch):
 
 def test_missing_key_gives_actionable_error(monkeypatch):
     monkeypatch.setattr(settings, "gemini_api_key", None)
-    with pytest.raises(LLMUnavailable, match="AIA_GEMINI_API_KEY"):
+    with pytest.raises(LLMUnavailable, match="Settings page"):
         GeminiClient()
     monkeypatch.setattr(settings, "gemini_api_key", SecretStr("  "))
-    with pytest.raises(LLMUnavailable, match="AIA_GEMINI_API_KEY"):
+    with pytest.raises(LLMUnavailable, match="Settings page"):
         GeminiClient()
 
 
@@ -208,7 +208,7 @@ def test_analysis_with_gemini_skips_indexing_without_warning(client, monkeypatch
 
     fake = FakeLLM()
     fake.supports_embeddings = False
-    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda: fake)
+    monkeypatch.setattr("app.services.analysis.service.get_llm", lambda *a, **k: fake)
     sid = _ready_session(client)
     client.post(f"/sessions/{sid}/analyze")
     body = client.get(f"/sessions/{sid}/analysis").json()

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { DocumentSlot } from '../components/DocumentSlot'
 import { Badge } from '../components/ui/badge'
+import { PageHeader } from '../components/ui/page'
+import { Stepper } from '../components/Stepper'
 import { Button } from '../components/ui/button'
 import { api, ApiError, type DocumentItem, type Session } from '../lib/api'
 
@@ -71,20 +73,21 @@ export function Upload() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link to="/" className="text-sm text-slate-500 hover:underline">
-          ← All interviews
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold">{session?.title ?? 'Loading…'}</h1>
-        {session && (
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-            <span>{session.target_role}</span>
-            <Badge>{session.interview_type}</Badge>
-            <Badge>{session.difficulty}</Badge>
-            <Badge>{session.question_count} questions</Badge>
-          </div>
-        )}
-      </div>
+      <Stepper sessionId={sessionId} current="documents" />
+      <PageHeader
+        title={session?.title ?? 'Loading…'}
+        back={{ to: '/', label: 'All interviews' }}
+        subtitle={
+          session && (
+            <span className="flex flex-wrap items-center gap-2">
+              <span>{session.target_role}</span>
+              <Badge>{session.interview_type}</Badge>
+              <Badge>{session.difficulty}</Badge>
+              <Badge>{session.question_count} questions</Badge>
+            </span>
+          )
+        }
+      />
 
       {error && session && (
         <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
@@ -111,7 +114,7 @@ export function Upload() {
         documents={byKind('other')}
       />
 
-      <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
+      <div className="sticky bottom-4 z-10 flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-lift backdrop-blur">
         <p className="text-sm text-slate-600">
           {canContinue
             ? 'Both required documents are ready.'

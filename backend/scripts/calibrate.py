@@ -17,7 +17,6 @@ sys.path.insert(0, str(ROOT / "backend"))
 from app.core.config import settings  # noqa: E402
 from app.services.feedback import rubric  # noqa: E402
 from app.services.feedback.evaluator import evaluate_answer  # noqa: E402
-from app.services.llm import runtime  # noqa: E402
 from app.services.llm.client import LLMError, get_llm  # noqa: E402
 
 MIN_GAP = 25
@@ -28,9 +27,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--gemini-model", help="override the saved Gemini model for this run only")
     args = ap.parse_args()
-    runtime.apply()
     if args.gemini_model:
-        settings.gemini_model = args.gemini_model
+        settings.gemini_model = args.gemini_model  # env-level default; scripts use AIA_* variables, not a user account
     llm = get_llm()
     print(f"provider={settings.llm_provider} model={getattr(llm, 'model_name', settings.evaluator_model)}")
 

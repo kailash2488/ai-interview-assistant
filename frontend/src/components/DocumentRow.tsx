@@ -22,7 +22,7 @@ export function DocumentRow({ doc, onDelete }: { doc: DocumentItem; onDelete: (d
   }
 
   return (
-    <li className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+    <li className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-sm">
       <div className="flex items-center gap-3">
         <FileText className="size-4 shrink-0 text-slate-500" aria-hidden />
         <span className="min-w-0 flex-1 truncate text-sm" title={doc.filename}>
@@ -30,12 +30,12 @@ export function DocumentRow({ doc, onDelete }: { doc: DocumentItem; onDelete: (d
         </span>
         <StatusBadge status={doc.status} />
         {doc.status === 'ready' && (
-          <Button variant="ghost" className="px-2 py-1" onClick={toggle} aria-expanded={open}>
+          <Button variant="ghost" size="sm" onClick={toggle} aria-expanded={open}>
             {open ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
             Text
           </Button>
         )}
-        <Button variant="danger" className="px-2 py-1" onClick={() => onDelete(doc)} aria-label={`Remove ${doc.filename}`}>
+        <Button variant="danger" size="sm" onClick={() => onDelete(doc)} aria-label={`Remove ${doc.filename}`}>
           <Trash2 className="size-4" />
         </Button>
       </div>
@@ -54,7 +54,7 @@ export function DocumentRow({ doc, onDelete }: { doc: DocumentItem; onDelete: (d
             </div>
           )}
           {detail && (
-            <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-md bg-white p-3 text-xs leading-relaxed text-slate-800 ring-1 ring-slate-200">
+            <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-xl bg-slate-50 p-3.5 text-xs leading-relaxed text-slate-800 ring-1 ring-slate-200">
               {detail.raw_text}
             </pre>
           )}

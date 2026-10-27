@@ -1,28 +1,31 @@
-import json
-import os
-import stat
-
 import httpx
 import pytest
 from pydantic import SecretStr
 
 from app.core.config import settings
-from app.services.llm import runtime
+from app.core.db import SessionLocal
+from app.core.security import decrypt_secret
+from app.models import UserLLMSettings
+from app.services.llm import user_settings as us
 
 KEY = "AIzaSyTESTKEY1234567890abcdef"
 
 
 @pytest.fixture(autouse=True)
-def clean(monkeypatch):
-    path = settings.runtime_settings_path
-    path.unlink(missing_ok=True)
-    runtime._ENV_DEFAULTS.clear()
+def server_defaults(monkeypatch):
     monkeypatch.setattr(settings, "llm_provider", "ollama")
     monkeypatch.setattr(settings, "gemini_api_key", None)
     monkeypatch.setattr(settings, "gemini_model", "gemini-3.5-flash-lite")
-    yield
-    path.unlink(missing_ok=True)
-    runtime._ENV_DEFAULTS.clear()
+
+
+def save(client, **body):
+    return client.put("/settings/llm", json=body)
+
+
+def test_requires_sign_in(anon_client):
+    assert anon_client.get("/settings/llm").status_code == 401
+    assert anon_client.put("/settings/llm", json={"provider": "ollama"}).status_code == 401
+    assert anon_client.post("/settings/llm/test").status_code == 401
 
 
 def test_defaults_to_local_without_a_key(client):
@@ -33,56 +36,62 @@ def test_defaults_to_local_without_a_key(client):
     assert body["gemini_model"] == "gemini-3.5-flash-lite"
 
 
-def test_gemini_requires_a_key(client):
-    assert client.put("/settings/llm", json={"provider": "gemini"}).status_code == 422
-    assert client.put("/settings/llm", json={"provider": "gemini", "gemini_api_key": "has space"}).status_code == 422
-    assert client.put("/settings/llm", json={"provider": "claude"}).status_code == 422
+def test_validation(client):
+    assert save(client, provider="gemini").status_code == 422  # needs a key
+    assert save(client, provider="gemini", gemini_api_key="has space").status_code == 422
+    assert save(client, provider="claude").status_code == 422
+    r = save(client, provider="gemini", gemini_api_key=KEY, gemini_model="gemini-2.5-flash")
+    assert r.status_code == 422 and "Unknown model" in r.text
 
 
-def test_save_key_never_comes_back_and_file_is_private(client):
-    r = client.put("/settings/llm", json={"provider": "gemini", "gemini_api_key": f"  {KEY} ", "gemini_model": "gemini-3.5-flash-lite"})
+def test_key_is_never_returned_and_is_encrypted_at_rest(client):
+    r = save(client, provider="gemini", gemini_api_key=f"  {KEY} ", gemini_model="gemini-3.1-pro-preview")
     body = r.json()
     assert r.status_code == 200 and body["provider"] == "gemini" and body["gemini_key_source"] == "settings"
-    assert body["gemini_key_hint"] == "…cdef" and body["gemini_model"] == "gemini-3.5-flash-lite"
-    assert KEY not in r.text and KEY not in client.get("/settings/llm").text
-    assert settings.gemini_api_key.get_secret_value() == KEY  # live settings updated without a restart
-    path = settings.runtime_settings_path
-    assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
-    assert json.loads(path.read_text())["gemini_api_key"] == KEY
-
-
-def test_omitting_the_key_keeps_the_saved_one(client):
-    client.put("/settings/llm", json={"provider": "gemini", "gemini_api_key": KEY})
-    body = client.put("/settings/llm", json={"provider": "gemini", "gemini_model": "gemini-3.1-pro-preview"}).json()
     assert body["gemini_key_hint"] == "…cdef" and body["gemini_model"] == "gemini-3.1-pro-preview"
-    body = client.put("/settings/llm", json={"provider": "ollama"}).json()
-    assert body["provider"] == "ollama" and body["gemini_key_set"] is True  # key stays saved, just unused
+    assert KEY not in r.text and KEY not in client.get("/settings/llm").text
+    with SessionLocal() as db:
+        row = db.query(UserLLMSettings).one()
+        assert KEY not in row.gemini_key_enc and decrypt_secret(row.gemini_key_enc) == KEY
+
+
+def test_omitting_the_key_keeps_it(client):
+    save(client, provider="gemini", gemini_api_key=KEY)
+    body = save(client, provider="gemini", gemini_model="gemini-3.6-flash").json()
+    assert body["gemini_key_hint"] == "…cdef" and body["gemini_model"] == "gemini-3.6-flash"
+    body = save(client, provider="ollama").json()
+    assert body["provider"] == "ollama" and body["gemini_key_set"] is True  # saved but unused
 
 
 def test_removing_the_key_switches_back_to_local(client):
-    client.put("/settings/llm", json={"provider": "gemini", "gemini_api_key": KEY})
+    save(client, provider="gemini", gemini_api_key=KEY)
     body = client.delete("/settings/llm/key").json()
     assert body["provider"] == "ollama" and body["gemini_key_set"] is False
-    assert "gemini_api_key" not in json.loads(settings.runtime_settings_path.read_text())
+    with SessionLocal() as db:
+        assert db.query(UserLLMSettings).one().gemini_key_enc is None
 
 
-def test_settings_survive_a_restart(client):
-    client.put("/settings/llm", json={"provider": "gemini", "gemini_api_key": KEY})
-    settings.llm_provider, settings.gemini_api_key = "ollama", None  # simulate a fresh process
-    runtime.apply()
-    assert settings.llm_provider == "gemini" and settings.gemini_api_key.get_secret_value() == KEY
+def test_each_account_has_its_own_settings_and_key(client, other_client):
+    save(client, provider="gemini", gemini_api_key=KEY, gemini_model="gemini-3.8-flash")
+    theirs = other_client.get("/settings/llm").json()
+    assert theirs["provider"] == "ollama" and theirs["gemini_key_set"] is False
+    assert other_client.put("/settings/llm", json={"provider": "gemini"}).status_code == 422  # cannot borrow my key
+    assert client.get("/settings/llm").json()["gemini_key_hint"] == "…cdef"
 
 
-def test_environment_key_is_reported_as_such(client, monkeypatch):
+def test_server_key_is_a_default_and_reported_as_such(client, monkeypatch):
     monkeypatch.setattr(settings, "gemini_api_key", SecretStr(KEY))
     body = client.get("/settings/llm").json()
-    assert body["gemini_key_source"] == "environment" and body["gemini_key_set"] is True and KEY not in json.dumps(body)
+    assert body["gemini_key_source"] == "environment" and body["gemini_key_set"] is True and KEY not in str(body)
+    own = "AIzaOWNKEY0000000000000zzzz"
+    assert save(client, provider="gemini", gemini_api_key=own).json()["gemini_key_source"] == "settings"
 
 
-def test_corrupt_settings_file_is_ignored(client):
-    settings.runtime_settings_path.write_text("{not json")
-    assert client.get("/settings/llm").json()["provider"] == "ollama"
-    runtime.apply()
+def test_changed_secret_key_means_the_user_re_enters_their_key(client, monkeypatch):
+    save(client, provider="gemini", gemini_api_key=KEY)
+    monkeypatch.setattr(settings, "secret_key", SecretStr("a-different-server-secret"))
+    body = client.get("/settings/llm").json()
+    assert body["gemini_key_set"] is False  # undecryptable, so treated as not set instead of crashing
 
 
 def test_connection_test_ollama_and_gemini(client, monkeypatch):
@@ -100,7 +109,7 @@ def test_connection_test_ollama_and_gemini(client, monkeypatch):
     r = client.post("/settings/llm/test").json()
     assert r["ok"] is False and "Ollama" in r["message"]
 
-    client.put("/settings/llm", json={"provider": "gemini", "gemini_api_key": KEY})
+    save(client, provider="gemini", gemini_api_key=KEY)
     gem = httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": '{"reply": "ok"}'}]}}]}, request=httpx.Request("POST", "http://x"))
     monkeypatch.setattr(httpx, "post", lambda *a, **k: gem)
     r = client.post("/settings/llm/test").json()
@@ -109,22 +118,20 @@ def test_connection_test_ollama_and_gemini(client, monkeypatch):
     bad = httpx.Response(403, json={"error": {"message": "denied"}}, request=httpx.Request("POST", "http://x"))
     monkeypatch.setattr(httpx, "post", lambda *a, **k: bad)
     r = client.post("/settings/llm/test").json()
-    assert r["ok"] is False and "rejected the API key" in r["message"] and KEY not in json.dumps(r)
+    assert r["ok"] is False and "rejected the API key" in r["message"] and KEY not in str(r)
 
 
-def test_test_with_gemini_but_no_key_explains_what_to_do(client, monkeypatch):
-    monkeypatch.setattr(settings, "llm_provider", "gemini")
+def test_gemini_without_a_key_explains_what_to_do(client):
+    with SessionLocal() as db:
+        from app.models import User
+        uid = db.query(User).one().id
+        db.add(UserLLMSettings(user_id=uid, provider="gemini", gemini_model="gemini-3.5-flash-lite"))
+        db.commit()
     r = client.post("/settings/llm/test").json()
     assert r["ok"] is False and "Settings page" in r["message"]
 
 
-def test_unknown_model_is_rejected(client):
-    r = client.put("/settings/llm", json={"provider": "gemini", "gemini_api_key": KEY, "gemini_model": "gemini-2.5-flash"})
-    assert r.status_code == 422 and "Unknown model" in r.text
-
-
-def test_old_saved_model_falls_back_to_default(client):
-    settings.runtime_settings_path.write_text(json.dumps({"provider": "ollama", "gemini_model": "gemini-2.5-flash"}))
-    runtime._ENV_DEFAULTS.clear()
-    runtime.apply()
-    assert settings.gemini_model == "gemini-3.5-flash-lite"
+def test_config_lookup_for_legacy_sessions_uses_server_defaults():
+    with SessionLocal() as db:
+        cfg = us.config_for_user(db, None)
+    assert cfg.provider == "ollama" and cfg.key_source == "none"

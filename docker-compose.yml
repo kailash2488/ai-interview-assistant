@@ -11,6 +11,8 @@ services:
     build: ./backend
     environment:
       AIA_OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      AIA_ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}        # set to false once your accounts exist
+      AIA_COOKIE_SECURE: ${COOKIE_SECURE:-false}     # set to true when serving over HTTPS
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

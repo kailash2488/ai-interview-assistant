@@ -15,6 +15,7 @@ from app.services.feedback import aggregate, communication, evaluator
 from app.services.interview.engine import ANALYSED
 from app.schemas.report import DimensionResult
 from app.services.llm.client import LLMError, LLMInvalidOutput, LLMUnavailable, get_llm
+from app.services.llm.user_settings import config_for_user
 from app.services.llm.prompts import render
 
 log = logging.getLogger(__name__)
@@ -73,7 +74,7 @@ def run_report(session_id: str, reuse: bool = False) -> None:
             return
         warnings: list[str] = []
         try:
-            llm = get_llm()
+            llm = get_llm(config_for_user(db, session.user_id))
             plan = InterviewPlan.model_validate(session.plan.plan_json)
             profile = CandidateProfile.model_validate(session.analysis.profile_json)
             questions = evaluable_questions(session)

@@ -14,6 +14,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.core.config import settings
 from app.services.llm.client import LLMError, LLMInvalidOutput, LLMUnavailable
+from app.services.llm.user_settings import LLMConfig  # noqa: E402
 
 log = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
@@ -62,30 +63,36 @@ class GeminiClient:
     supports_embeddings = False
     _thinking_unsupported: set[str] = set()  # models that rejected thinkingConfig; remembered for the process
 
-    def __init__(self) -> None:
-        if settings.gemini_api_key is None or not settings.gemini_api_key.get_secret_value().strip():
+    def __init__(self, config: "LLMConfig | None" = None) -> None:
+        """`config` is the signed-in user's choice; without one the server's environment defaults apply."""
+        from app.services.llm.user_settings import server_default
+
+        config = config or server_default()
+        key = (config.gemini_api_key or "").strip()
+        if not key:
             raise LLMUnavailable(
                 "Gemini is selected but no API key is set. Add your key on the Settings page "
-                "(or set AIA_GEMINI_API_KEY in backend/.env). Create a free key at https://aistudio.google.com/apikey."
+                "(create a free key at https://aistudio.google.com/apikey)."
             )
-        self._key = settings.gemini_api_key.get_secret_value().strip()
+        self._key = key
+        self.model = config.gemini_model
         self.supports_embeddings = bool(settings.gemini_embed_model)
 
     @property
     def model_name(self) -> str:
-        return settings.gemini_model
+        return self.model
 
     # ---------- request plumbing ----------
 
     def _url(self, method: str) -> str:
-        return f"{settings.gemini_base_url.rstrip('/')}/models/{settings.gemini_model}:{method}"
+        return f"{settings.gemini_base_url.rstrip('/')}/models/{self.model}:{method}"
 
     def _headers(self) -> dict[str, str]:
         return {"x-goog-api-key": self._key, "Content-Type": "application/json"}
 
     def _body(self, system: str, messages: list[dict], temperature: float, max_tokens: int | None, schema: dict | None) -> dict:
         config: dict[str, Any] = {"temperature": temperature}
-        thinking_off = settings.gemini_thinking_level is not None and settings.gemini_model not in self._thinking_unsupported
+        thinking_off = settings.gemini_thinking_level is not None and self.model not in self._thinking_unsupported
         if max_tokens:
             # Hidden "thinking" tokens count against maxOutputTokens, so a small limit can cut the answer to a
             # few words. Prompts already ask for brevity; the limit is only a safety ceiling.
@@ -109,8 +116,7 @@ class GeminiClient:
             config["maxOutputTokens"] = max(config["maxOutputTokens"], MIN_OUTPUT_TOKENS)
         return {**body, "generationConfig": config}
 
-    @staticmethod
-    def _raise_for_status(res: httpx.Response) -> None:
+    def _raise_for_status(self, res: httpx.Response) -> None:
         if res.status_code < 400:
             return
         try:
@@ -121,12 +127,12 @@ class GeminiClient:
         if code in (401, 403) or (code == 400 and "API key" in detail):
             raise LLMUnavailable("Gemini rejected the API key. Check it on the Settings page.")
         if code == 404:
-            raise LLMUnavailable(f"Gemini model '{settings.gemini_model}' was not found. Pick another model on the Settings page.")
+            raise LLMUnavailable(f"Gemini model '{self.model}' was not found. Pick another model on the Settings page.")
         if code == 429:
             raise LLMUnavailable("Gemini free-tier rate limit reached. Wait a minute and try again.")
         if code == 503:
             raise LLMUnavailable(
-                f"Google says {settings.gemini_model} is overloaded right now. Try again in a minute, "
+                f"Google says {self.model} is overloaded right now. Try again in a minute, "
                 "or choose Gemini 3.5 Flash-Lite on the Settings page."
             )
         if code >= 500:
@@ -143,12 +149,12 @@ class GeminiClient:
                 raise LLMUnavailable("Cannot reach the Gemini API. Check your internet connection.") from exc
             except httpx.TimeoutException as exc:
                 raise LLMUnavailable(
-                    f"{settings.gemini_model} did not answer in time (Google may be overloaded). "
+                    f"{self.model} did not answer in time (Google may be overloaded). "
                     "Try again, or choose Gemini 3.5 Flash-Lite on the Settings page."
                 ) from exc
             if _rejects_thinking_config(res) and "thinkingConfig" in body["generationConfig"]:
-                log.info("%s does not accept thinkingConfig; retrying without it", settings.gemini_model)
-                self._thinking_unsupported.add(settings.gemini_model)
+                log.info("%s does not accept thinkingConfig; retrying without it", self.model)
+                self._thinking_unsupported.add(self.model)
                 body = self._without_thinking(body)
                 continue  # happens at most once per call: the key is gone on the next pass
             if res.status_code in (429, 503) and retries_left > 0:
@@ -206,7 +212,7 @@ class GeminiClient:
                     if res.status_code >= 400:
                         res.read()
                         if _rejects_thinking_config(res) and "thinkingConfig" in body["generationConfig"]:
-                            self._thinking_unsupported.add(settings.gemini_model)
+                            self._thinking_unsupported.add(self.model)
                             body, retry = self._without_thinking(body), True
                         else:
                             self._raise_for_status(res)
@@ -226,7 +232,7 @@ class GeminiClient:
             raise LLMUnavailable("Cannot reach the Gemini API. Check your internet connection.") from exc
         except httpx.TimeoutException as exc:
             raise LLMUnavailable(
-                    f"{settings.gemini_model} did not answer in time (Google may be overloaded). "
+                    f"{self.model} did not answer in time (Google may be overloaded). "
                     "Try again, or choose Gemini 3.5 Flash-Lite on the Settings page."
                 ) from exc
 

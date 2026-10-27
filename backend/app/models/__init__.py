@@ -8,7 +8,9 @@ from app.models.interview_session import (
     Report,
     SessionAnalysis,
 )
+from app.models.user import AuthSession, User, UserLLMSettings
 
 __all__ = [
-    "Answer", "Document", "Evaluation", "InterviewPlanRow", "InterviewSession", "Question", "Report", "SessionAnalysis",
+    "Answer", "AuthSession", "Document", "Evaluation", "InterviewPlanRow", "InterviewSession", "Question", "Report",
+    "SessionAnalysis", "User", "UserLLMSettings",
 ]

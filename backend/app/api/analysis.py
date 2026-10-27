@@ -2,9 +2,10 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import current_user
 from app.api.sessions import get_session_or_404
 from app.core.db import get_db
-from app.models import Document, SessionAnalysis
+from app.models import Document, SessionAnalysis, User
 from app.schemas.analysis import (
     AnalysisOut, AnalysisPatch, CandidateProfile, GapAnalysis, JDRequirements,
 )
@@ -25,8 +26,8 @@ def _out(row: SessionAnalysis) -> AnalysisOut:
     )
 
 
-def _get_row(session_id: str, db: Session) -> SessionAnalysis:
-    get_session_or_404(session_id, db)
+def _get_row(session_id: str, db: Session, user: User) -> SessionAnalysis:
+    get_session_or_404(session_id, db, user)
     row = db.scalar(select(SessionAnalysis).where(SessionAnalysis.session_id == session_id))
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No analysis yet. Run POST /analyze first.")
@@ -34,8 +35,8 @@ def _get_row(session_id: str, db: Session) -> SessionAnalysis:
 
 
 @router.post("/analyze", response_model=AnalysisOut, status_code=status.HTTP_202_ACCEPTED)
-def analyze(session_id: str, background: BackgroundTasks, db: Session = Depends(get_db)):
-    get_session_or_404(session_id, db)
+def analyze(session_id: str, background: BackgroundTasks, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    get_session_or_404(session_id, db, user)
     ready = {d.kind for d in db.scalars(select(Document).where(Document.session_id == session_id, Document.status == "ready"))}
     missing = [k for k in ("resume", "jd") if k not in ready]
     if missing:
@@ -55,13 +56,13 @@ def analyze(session_id: str, background: BackgroundTasks, db: Session = Depends(
 
 
 @router.get("/analysis", response_model=AnalysisOut)
-def get_analysis(session_id: str, db: Session = Depends(get_db)):
-    return _out(_get_row(session_id, db))
+def get_analysis(session_id: str, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    return _out(_get_row(session_id, db, user))
 
 
 @router.patch("/analysis", response_model=AnalysisOut)
-def patch_analysis(session_id: str, payload: AnalysisPatch, db: Session = Depends(get_db)):
-    row = _get_row(session_id, db)
+def patch_analysis(session_id: str, payload: AnalysisPatch, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    row = _get_row(session_id, db, user)
     if row.status != "ready":
         raise HTTPException(status.HTTP_409_CONFLICT, "Analysis is not ready to edit")
     if payload.profile is not None:

@@ -2,7 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
-import { Field, Input, Select } from '../components/ui/field'
+import { Field, Input } from '../components/ui/field'
+import { PageHeader } from '../components/ui/page'
+import { Segmented } from '../components/ui/segmented'
 import { api, type Difficulty, type InterviewType } from '../lib/api'
 
 export function Setup() {
@@ -11,7 +13,7 @@ export function Setup() {
   const [role, setRole] = useState('')
   const [type, setType] = useState<InterviewType>('mixed')
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
-  const [count, setCount] = useState(10)
+  const [count, setCount] = useState('10')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,7 +27,7 @@ export function Setup() {
         target_role: role.trim(),
         interview_type: type,
         difficulty,
-        question_count: count,
+        question_count: Number(count),
       })
       navigate(`/sessions/${s.id}/upload`)
     } catch (err) {
@@ -35,47 +37,56 @@ export function Setup() {
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-2xl font-semibold">New interview</h1>
-      <Card>
-        <form onSubmit={submit} className="space-y-4">
-          <Field label="Session name">
-            <Input required maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Backend role practice #1" />
-          </Field>
-          <Field label="Target role">
-            <Input required maxLength={200} value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Senior Python Developer" />
-          </Field>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="Interview type">
-              <Select value={type} onChange={(e) => setType(e.target.value as InterviewType)}>
-                <option value="mixed">Mixed</option>
-                <option value="technical">Technical</option>
-                <option value="behavioural">Behavioural</option>
-              </Select>
+    <div className="mx-auto max-w-2xl">
+      <PageHeader title="New interview" subtitle="Tell us what you are practising for. Next you will upload your resume and the job description." back={{ to: '/', label: 'All interviews' }} />
+      <Card className="p-8">
+        <form onSubmit={submit} className="space-y-6">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Session name" hint="Just for you, so you can find it later.">
+              <Input required maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Backend role practice #1" />
             </Field>
-            <Field label="Difficulty">
-              <Select value={difficulty} onChange={(e) => setDifficulty(e.target.value as Difficulty)}>
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-              </Select>
-            </Field>
-            <Field label="Questions">
-              <Select value={count} onChange={(e) => setCount(Number(e.target.value))}>
-                {[8, 10, 12, 15, 20].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </Select>
+            <Field label="Target role" hint="The job you are interviewing for.">
+              <Input required maxLength={200} value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Senior Python Developer" />
             </Field>
           </div>
+          <Segmented
+            label="Interview type"
+            value={type}
+            onChange={setType}
+            options={[
+              { value: 'mixed', label: 'Mixed', hint: 'Technical plus behavioural' },
+              { value: 'technical', label: 'Technical', hint: 'Skills and projects' },
+              { value: 'behavioural', label: 'Behavioural', hint: 'Situations and teamwork' },
+            ]}
+          />
+          <Segmented
+            label="Difficulty"
+            value={difficulty}
+            onChange={setDifficulty}
+            options={[
+              { value: 'easy', label: 'Easy', hint: 'Basics and definitions' },
+              { value: 'medium', label: 'Medium', hint: 'Applied, with trade-offs' },
+              { value: 'hard', label: 'Hard', hint: 'Design and failure modes' },
+            ]}
+          />
+          <Segmented
+            label="Number of topics"
+            value={count}
+            onChange={setCount}
+            options={[
+              { value: '8', label: '8', hint: 'about 15 min' },
+              { value: '10', label: '10', hint: 'about 20 min' },
+              { value: '12', label: '12', hint: 'about 25 min' },
+              { value: '15', label: '15', hint: 'about 35 min' },
+              { value: '20', label: '20', hint: 'about 45 min' },
+            ]}
+          />
           {error && (
-            <p role="alert" className="text-sm text-red-700">
+            <p role="alert" className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
               {error}
             </p>
           )}
-          <Button type="submit" disabled={busy || !title.trim() || !role.trim()}>
+          <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={busy || !title.trim() || !role.trim()}>
             {busy ? 'Creating…' : 'Continue to uploads'}
           </Button>
         </form>

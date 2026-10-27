@@ -24,7 +24,10 @@ def _enable_sqlite_fk(dbapi_conn, _record):
 def init_db() -> None:
     from app import models  # noqa: F401  (register tables)
 
+    from app.core import migrate
+
     Base.metadata.create_all(engine)
+    migrate.upgrade(engine)
 
 
 def get_db() -> Iterator[Session]:
