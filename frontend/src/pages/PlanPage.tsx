@@ -62,7 +62,7 @@ export function PlanPage() {
       </Card>
       <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
         <p className="text-sm text-slate-600">
-          Answer one question at a time. Scores are not shown during the interview. Keep other heavy apps closed so the local model stays fast.
+          Answer one question at a time. Scores are not shown during the interview. If you use a local model, close other heavy apps so it stays fast.
         </p>
         <Button onClick={() => navigate(`/sessions/${sessionId}/interview`)}>Start interview</Button>
       </div>

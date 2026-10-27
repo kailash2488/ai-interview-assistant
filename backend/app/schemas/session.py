@@ -35,3 +35,4 @@ class SessionOut(BaseModel):
     question_count: int
     status: str
     created_at: datetime
+    overall_score: int | None = None

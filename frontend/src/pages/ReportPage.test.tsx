@@ -120,6 +120,14 @@ describe('Report page', () => {
     expect(confirm).toHaveBeenCalledTimes(2)
   })
 
+  it('links to the PDF download', async () => {
+    stub(() => [200, ready])
+    renderPage()
+    const link = (await screen.findByRole('button', { name: 'Download PDF' })).closest('a')!
+    expect(link).toHaveAttribute('href', '/api/sessions/s1/report/pdf')
+    expect(link).toHaveAttribute('download')
+  })
+
   it('shows warnings when the written summary was built from scores', async () => {
     stub(() => [200, { ...ready, warnings: ['The written summary could not be generated.'] }])
     renderPage()

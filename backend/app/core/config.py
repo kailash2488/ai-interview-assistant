@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite:///{BACKEND_DIR / 'data' / 'app.db'}"
     upload_dir: Path = BACKEND_DIR / "uploads"
     max_upload_mb: int = 10
+    max_other_documents: int = 10
 
     # "ollama" (local, private, default) or "gemini" (Google's hosted API; needs AIA_GEMINI_API_KEY)
     llm_provider: Literal["ollama", "gemini"] = "ollama"

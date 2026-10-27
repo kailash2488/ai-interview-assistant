@@ -2,3 +2,4 @@ data/*.db
 uploads/
 data/qdrant/
 data/llm_settings.json
+.coverage

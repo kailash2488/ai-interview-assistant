@@ -4,7 +4,7 @@ import { QuestionCard, DIMENSION_LABELS } from '../components/QuestionCard'
 import { ScoreBars } from '../components/ScoreBars'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
-import { api, type Report } from '../lib/api'
+import { api, reportPdfUrl, type Report } from '../lib/api'
 
 const POLL_MS = 2000
 
@@ -116,14 +116,21 @@ export function ReportPage() {
           <h1 className="mt-1 text-2xl font-semibold">Feedback report</h1>
           <p className="text-sm text-slate-500">{r.target_role}</p>
         </div>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            if (window.confirm('Generate the report again? The current one will be replaced.')) void generate()
-          }}
-        >
-          Regenerate
-        </Button>
+        <div className="flex gap-2">
+          <a href={reportPdfUrl(sessionId)} download>
+            <Button variant="secondary" type="button">
+              Download PDF
+            </Button>
+          </a>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              if (window.confirm('Generate the report again? The current one will be replaced.')) void generate()
+            }}
+          >
+            Regenerate
+          </Button>
+        </div>
       </div>
       {errorBox}
       {report.warnings.map((w) => (

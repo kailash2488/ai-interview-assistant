@@ -14,8 +14,13 @@ const base: LLMSettings = {
   gemini_key_set: false, gemini_key_hint: null, gemini_key_source: 'none', ollama_model: 'mistral:7b',
 }
 
+const dataSummary = { sessions: 2, documents: 4, answers: 12, reports: 1, upload_bytes: 20480 }
+
 function stub(handler: (url: string, init?: RequestInit) => [number, unknown]) {
   const fn = vi.fn(async (url: string, init?: RequestInit) => {
+    if (String(url).endsWith('/data')) {
+      return new Response(JSON.stringify(init?.method === 'DELETE' ? { sessions: 0, documents: 0, answers: 0, reports: 0, upload_bytes: 0 } : dataSummary), { status: 200 })
+    }
     const [status, body] = handler(url, init)
     return new Response(JSON.stringify(body), { status })
   })
@@ -112,5 +117,25 @@ describe('Settings page models', () => {
     expect(screen.getByText(/Has a free tier/)).toBeInTheDocument()
     await userEvent.selectOptions(select, 'gemini-3.1-pro-preview')
     expect(screen.getByText(/needs a key from a project with billing/)).toBeInTheDocument()
+  })
+})
+
+describe('Settings page data controls', () => {
+  it('shows what is stored and only enables deletion after typing the phrase', async () => {
+    const fetchFn = stub(() => [200, base])
+    renderPage()
+    expect(await screen.findByText(/2 interviews, 4 documents, 12 answers, 1 report/)).toBeInTheDocument()
+    const button = screen.getByRole('button', { name: 'Delete all my data' })
+    expect(button).toBeDisabled()
+    await userEvent.type(screen.getByLabelText(/Type DELETE ALL/), 'delete all')
+    expect(button).toBeDisabled()
+    await userEvent.clear(screen.getByLabelText(/Type DELETE ALL/))
+    await userEvent.type(screen.getByLabelText(/Type DELETE ALL/), 'DELETE ALL')
+    expect(button).toBeEnabled()
+    await userEvent.click(button)
+    expect(await screen.findByText(/All interviews, documents, answers and reports were deleted/)).toBeInTheDocument()
+    const del = fetchFn.mock.calls.find(([u, i]) => String(u).endsWith('/data') && i?.method === 'DELETE')!
+    expect(JSON.parse(del[1]!.body as string)).toEqual({ confirm: 'DELETE ALL' })
+    expect(screen.getByRole('button', { name: 'Delete all my data' })).toBeDisabled()
   })
 })

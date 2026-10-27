@@ -1,14 +1,40 @@
+# One command: docker compose up --build   (then open http://localhost:8080)
+#
+# Models: pick one on the app's Settings page.
+#   - Gemini (cloud, fast): paste an API key in Settings. Nothing else to install.
+#   - Local Ollama (free, private, slow on CPU), either:
+#       a) Ollama already running on this computer: nothing to do, the backend reaches it via host.docker.internal.
+#       b) Ollama in Docker:  OLLAMA_URL=http://ollama:11434 docker compose --profile local-llm up --build
+#          docker compose exec ollama ollama pull mistral:7b && docker compose exec ollama ollama pull nomic-embed-text
 services:
   backend:
     build: ./backend
-    ports:
-      - "8000:8000"
+    environment:
+      AIA_OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - app-data:/srv/data
       - app-uploads:/srv/uploads
     restart: unless-stopped
-  # frontend (Vite dev server) and ollama services are added in later steps
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${APP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["local-llm"]
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
 
 volumes:
   app-data:
   app-uploads:
+  ollama-models:

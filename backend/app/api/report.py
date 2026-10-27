@@ -1,4 +1,6 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+import re
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -6,6 +8,7 @@ from app.api.sessions import get_session_or_404
 from app.core.db import get_db
 from app.models import Report
 from app.schemas.report import ReportBody, ReportOut
+from app.services.feedback.pdf import render_report_pdf
 from app.services.feedback.report_service import evaluable_questions, run_report
 
 router = APIRouter(prefix="/sessions/{session_id}/report", tags=["report"])
@@ -53,3 +56,14 @@ def get_report(session_id: str, db: Session = Depends(get_db)):
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No report yet. Generate one first.")
     return _out(row)
+
+
+@router.get("/pdf")
+def download_pdf(session_id: str, db: Session = Depends(get_db)):
+    session = get_session_or_404(session_id, db)
+    row = session.report
+    if row is None or row.status != "ready" or not row.report_json:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Generate the report first")
+    pdf = render_report_pdf(ReportBody.model_validate(row.report_json), session.title, session.created_at.strftime("%Y-%m-%d"))
+    name = re.sub(r"[^A-Za-z0-9._-]+", "-", session.title).strip("-")[:60] or "report"
+    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="feedback-{name}.pdf"'})

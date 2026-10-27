@@ -14,6 +14,7 @@ export interface Session {
   question_count: number
   status: string
   created_at: string
+  overall_score: number | null
 }
 
 export type SessionCreate = Pick<
@@ -219,6 +220,48 @@ export interface Report {
   updated_at: string
 }
 
+export interface HistoryItem {
+  session_id: string
+  title: string
+  target_role: string
+  created_at: string
+  overall_score: number
+  verdict: string
+  evaluated: number
+}
+export interface DeltaRow {
+  name: string
+  a: number | null
+  b: number | null
+  delta: number | null
+}
+export interface Attempt {
+  session_id: string
+  title: string
+  target_role: string
+  created_at: string
+  overall_score: number
+  verdict: string
+  avg_words: number
+}
+export interface Comparison {
+  a: Attempt
+  b: Attempt
+  overall_delta: number
+  dimensions: DeltaRow[]
+  areas: DeltaRow[]
+  same_role: boolean
+}
+export interface DataSummary {
+  sessions: number
+  documents: number
+  answers: number
+  reports: number
+  upload_bytes: number
+}
+
+export const reportPdfUrl = (sid: string) => `${BASE}/sessions/${sid}/report/pdf`
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -295,6 +338,11 @@ export const api = {
       throw e
     }
   },
+  getHistory: () => request<HistoryItem[]>('/history'),
+  compare: (a: string, b: string) => request<Comparison>(`/history/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`),
+  getDataSummary: () => request<DataSummary>('/data'),
+  deleteAllData: () =>
+    request<DataSummary>('/data', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'DELETE ALL' }) }),
   createPlan: (sid: string) => request<Plan>(`/sessions/${sid}/plan`, { method: 'POST' }),
   getPlan: async (sid: string): Promise<Plan | null> => {
     try {

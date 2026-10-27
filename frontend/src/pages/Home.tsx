@@ -71,7 +71,7 @@ export function Home() {
                 </Link>
               )}
               <Badge>{s.interview_type}</Badge>
-              <Badge>{s.question_count} questions</Badge>
+              {s.overall_score !== null ? <Badge tone={s.overall_score >= 70 ? 'success' : s.overall_score >= 45 ? 'info' : 'danger'}>Score {s.overall_score}</Badge> : <Badge>{s.question_count} questions</Badge>}
               <Button variant="danger" onClick={() => remove(s)} aria-label={`Delete ${s.title}`}>
                 <Trash2 className="size-4" />
               </Button>

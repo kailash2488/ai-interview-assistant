@@ -41,6 +41,10 @@ class InterviewSession(Base):
     )
     report: Mapped["Report | None"] = relationship(cascade="all, delete-orphan", uselist=False)
 
+    @property
+    def overall_score(self) -> int | None:
+        return self.report.overall_score if self.report is not None and self.report.status == "ready" else None
+
 
 class Document(Base):
     __tablename__ = "documents"

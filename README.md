@@ -1,123 +1,158 @@
 # AI Interview Assistant
 
-An open-source, local-first web app for interview preparation. Upload a resume, a job description and any supporting documents. The app analyses them, runs a tailored mock interview, and produces a detailed feedback report.
+An open-source web app for interview practice. Upload your resume and a job description. The app analyses both, runs a mock interview tailored to you and that role, and then gives you a scored feedback report with a study plan.
 
-Everything is free and runs on your own machine: FastAPI, React, SQLite, Qdrant and local LLMs through Ollama. No paid APIs, and your resume never leaves your computer.
+You choose where the AI runs:
 
-The full plan is in [docs/SOP.pdf](docs/SOP.pdf).
+- **Local (free and private):** open-source models through [Ollama](https://ollama.com). Your resume never leaves your computer. Slow on a laptop without a GPU.
+- **Google Gemini (cloud, fast):** bring your own API key. A free key works. Your resume and job description are sent to Google.
 
-## Status
+Everything else is open source and free: FastAPI, React, SQLite and Qdrant.
 
-| Phase | Scope | State |
-|---|---|---|
-| 0 | Planning, repository | Done |
-| 1 | Foundation and document ingestion | Done |
-| 2 | LLM analysis (Ollama, profile/JD extraction, gap analysis) | Done (mistral:7b default; qwen2.5:7b benchmarked) |
-| 3 | Interview plan and text interview | Done |
-| 4 | Feedback and report | Done |
-| 5 | History, polish, hardening | Not started |
-| 6 | Voice mode (optional) | Not started |
+| Home | Analysis review |
+|---|---|
+| ![Home with scores](docs/screenshots/10-home-with-scores.png) | ![Analysis review](docs/screenshots/05-analysis.png) |
+| **Live interview** | **Feedback report** |
+| ![Interview](docs/screenshots/07-interview.png) | ![Report](docs/screenshots/09-report.png) |
 
-## Quick start
+Watch a 100-second walkthrough from upload to report: [docs/demo.mp4](docs/demo.mp4). More screenshots are in [docs/screenshots/](docs/screenshots/).
 
-Run the backend and frontend in two terminals, then open http://localhost:5173.
+## What it does
 
-### Backend
+1. **Create an interview:** target role, type (technical, behavioural or mixed), difficulty and number of questions.
+2. **Upload documents:** resume (PDF, DOCX or TXT), job description (file or pasted text) and optional extras. Each file shows Uploaded, Parsing, then Ready, and you can read the extracted text.
+3. **Analysis:** the model extracts your profile and the job's requirements. You review and correct them (add or remove skills) before anything else happens. A gap analysis shows matching skills, gaps and claims the interviewer will probe.
+4. **Plan:** a topic outline (introduction, core skills, project deep dives, gap areas, behavioural, your questions). The questions stay hidden so the interview feels real.
+5. **Live interview:** a chat room with streamed questions and adaptive follow-ups. The interviewer never shows scores or hints. If you reload the page you pick up where you left off.
+6. **Feedback report (only when you ask for it):** every answer is scored 1 to 5 on accuracy, depth, relevance, structure and evidence, each with a quote from your answer. You get an overall score and verdict, scores by topic and dimension, strengths and improvement areas, a per-question breakdown with a stronger sample answer, communication notes and a two-week study plan. Download it as a PDF.
+7. **Progress:** compare two attempts side by side to see what improved.
+8. **Privacy controls:** delete one interview, or everything, from the app.
+
+## Quick start with Docker
+
+You need Docker. Then:
 
 ```bash
+git clone https://github.com/kailash2488/ai-interview-assistant.git
+cd ai-interview-assistant
+docker compose up --build
+```
+
+Open http://localhost:8080 and go to **Settings** to pick a model:
+
+- **Gemini (easiest):** choose Gemini, paste a key from [Google AI Studio](https://aistudio.google.com/apikey), save, and press Test connection.
+- **Local model with Ollama on this computer:** install Ollama and run `ollama pull mistral:7b` and `ollama pull nomic-embed-text`. Docker containers cannot reach an Ollama that listens only on `127.0.0.1` (the default). Either make it listen on all interfaces (for example `OLLAMA_HOST=0.0.0.0`, which also exposes it to your network) or use the next option.
+- **Local model with Ollama inside Docker:**
+  ```bash
+  OLLAMA_URL=http://ollama:11434 docker compose --profile local-llm up --build
+  docker compose exec ollama ollama pull mistral:7b
+  docker compose exec ollama ollama pull nomic-embed-text
+  ```
+  (This path is configured but has not been tested end to end.)
+
+Change the port with `APP_PORT=9000 docker compose up`. Your data lives in Docker volumes; `docker compose down -v` removes it.
+
+## Run without Docker
+
+Needs Python 3.10 or later and Node 20 or later.
+
+```bash
+# backend (terminal 1)
 cd backend
 python -m venv ../env && source ../env/bin/activate
 pip install -e ".[dev]"
-uvicorn app.main:app --reload      # http://localhost:8000/docs
-pytest
-```
+uvicorn app.main:app --reload          # API docs at http://localhost:8000/docs
 
-Or with Docker: `docker compose up --build` (backend only for now).
-
-### Frontend
-
-Needs Node 20 or later.
-
-```bash
+# frontend (terminal 2)
 cd frontend
 npm install
-npm run dev      # http://localhost:5173, proxies /api to the backend on port 8000
-npm test
+npm run dev                            # http://localhost:5173, proxies /api to port 8000
 ```
 
-The repo includes `frontend/.npmrc` with `legacy-peer-deps=true`, which works around an npm 10 peer-dependency resolver crash.
+`frontend/.npmrc` sets `legacy-peer-deps=true`, which works around a peer-dependency crash in npm 10.
 
-### Ollama
+## Choosing a model
+
+| | Local (Ollama) | Gemini |
+|---|---|---|
+| Cost | Free | Free tier with rate limits, or paid |
+| Privacy | Stays on your computer | Sent to Google; the free tier may be used to improve Google's products |
+| Speed on a CPU-only laptop | Analysis about 2 minutes, each interview turn 10 to 60 seconds | Analysis about 5 seconds, each turn 2 to 4 seconds |
+| Setup | Install Ollama, pull two models | Paste a key |
+
+Local benchmark on 8 sample documents (see [docs/benchmarks/](docs/benchmarks/)): `mistral:7b` gave 100% valid JSON and 88% skill recall in about 43 s per document; `qwen2.5:7b` gave 100% and 91% in about 60 s. `mistral:7b` is the default.
+
+Gemini models offered in Settings: `gemini-3.5-flash-lite` (recommended), `gemini-3.8-flash`, `gemini-3.6-flash` and `gemini-3.1-pro-preview`. During testing `gemini-3.8-flash` was often overloaded on the free tier, so Flash-Lite is the default. Check your own limits in AI Studio. Free-tier limits are per minute, so a long report may pause and retry.
+
+Check your setup from a terminal with `python backend/scripts/check_llm.py`.
+
+## Configuration
+
+Settings come from environment variables prefixed `AIA_`, or a `backend/.env` file (see `backend/.env.example`). The Settings page overrides the provider, model and key and saves them to `backend/data/llm_settings.json` (readable only by you, git-ignored). The key is never sent back to the browser.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `AIA_LLM_PROVIDER` | `ollama` | `ollama` or `gemini` |
+| `AIA_GEMINI_API_KEY` | none | Gemini key (or set it on the Settings page) |
+| `AIA_GEMINI_MODEL` | `gemini-3.5-flash-lite` | Gemini model |
+| `AIA_OLLAMA_URL` | `http://localhost:11434` | Where Ollama runs |
+| `AIA_INTERVIEWER_MODEL`, `AIA_EVALUATOR_MODEL` | `mistral:7b` | Ollama chat models |
+| `AIA_EMBED_MODEL` | `nomic-embed-text` | Ollama embedding model |
+| `AIA_MAX_UPLOAD_MB` | `10` | Upload size limit |
+| `AIA_MAX_OTHER_DOCUMENTS` | `10` | Extra documents per interview |
+
+## How it works
+
+```
+React (Vite)  --REST + WebSocket-->  FastAPI
+                                       |- ingestion   parse -> clean -> section -> embed
+                                       |- analysis    profile, requirements, gap analysis (gap in plain code)
+                                       |- interview   plan (plain code) + state machine + interviewer
+                                       |- feedback    rubric evaluator, guards, report, PDF
+                                       |- llm         Ollama or Gemini client, JSON-schema output, retry
+                                       +- SQLite + embedded Qdrant
+```
+
+Design rules:
+
+- **The code decides, the model writes.** The interview plan, follow-up limits, scores, verdict and gap analysis are plain code. The model only writes question wording, judges individual answers and writes the report text.
+- **Structured outputs everywhere.** Model replies are validated against Pydantic schemas, retried once, and fall back safely (for example to a planned question).
+- **Small models first.** Short prompts, one task per call, a worked example in each prompt. Prompts live in [backend/app/prompts/](backend/app/prompts/).
+- **Honest scoring.** A score above 3 needs a quote that really appears in the answer. Very short answers cannot score high on depth or evidence. Strengths only come from topics that scored well. `python backend/scripts/calibrate.py` checks that the evaluator ranks hand-labelled strong, average and weak answers correctly (with `gemini-3.5-flash-lite`: strong 94 to 100, average 44 to 61, weak 7 to 26).
+- **Uploaded text is data.** Resume, job description and answers are delimited in prompts and the model is told never to follow instructions inside them.
+
+## Tests
 
 ```bash
-ollama pull mistral:7b          # chat model used for extraction (change with AIA_EVALUATOR_MODEL)
-ollama pull nomic-embed-text    # embedding model for document search
+cd backend && pytest                  # 180+ tests; add --cov=app for coverage (about 96%)
+cd frontend && npm test               # 54 tests
 ```
 
-Analysis runs on your CPU and can take a few minutes. Compare models on your own machine with
-`python backend/scripts/benchmark.py --models mistral:7b qwen2.5:7b`. It uses the samples in `data/samples/`
-and writes results to `docs/benchmarks/`.
+The model is replaced by a fake in tests, so they need no network or API key.
 
-### Using Gemini instead of Ollama (optional)
+## Project layout
 
-If local models are too slow, you can use Google's hosted Gemini through its free tier. Local Ollama stays the default.
+```
+backend/app/api         routers (sessions, documents, analysis, interview, report, history, settings, data)
+backend/app/services    ingestion, analysis, interview, feedback, llm, vectorstore
+backend/app/prompts     versioned prompt templates
+backend/scripts         benchmark.py, calibrate.py, check_llm.py
+frontend/src            pages, components, API client
+data/samples            sample resumes, job descriptions, calibration answers
+docs                    SOP.pdf (the original plan), benchmarks, screenshots
+```
 
-1. Create a free key at https://aistudio.google.com/apikey.
-2. Open **Settings** in the app, choose Gemini, paste the key, pick a model and press Save, then Test connection.
-   (Alternatively copy `backend/.env.example` to `backend/.env` and set `AIA_LLM_PROVIDER=gemini` and `AIA_GEMINI_API_KEY=...`; `.env` is git-ignored.)
-3. `python backend/scripts/check_llm.py` runs the same check from the terminal.
+## Limitations
 
-The default is `gemini-3.5-flash-lite`: on a real run it analysed a resume and job description in about 5 s and answered each interview turn in 2-4 s,
-against about 2 minutes and 20-60 s with a local 7B model on CPU. `gemini-3.8-flash` was returning "high demand" (503) errors during testing.
+- Local models on a CPU-only laptop are slow. Use Gemini or a machine with a GPU for a smooth experience.
+- Scores come from a rubric applied by a language model, so they are good for comparing your own attempts over time and for spotting weak areas. They are not a hiring decision.
+- Text only, English only, one user. There are no accounts or login by design.
+- Scanned PDFs are not supported (no OCR).
+- Long jobs run as background tasks inside the API process. If you restart the backend during an analysis or report, start it again from the app.
 
-Privacy: with Gemini your resume and job description are sent to Google, and on the free tier Google may use them to improve its products.
-Free-tier rate limits apply (see your limits in AI Studio); the app retries briefly on rate-limit errors. Document search (embeddings)
-is skipped with Gemini unless you set `AIA_GEMINI_EMBED_MODEL`.
+## Roadmap
 
-### How the interview works
-
-The plan is built in plain code from the analysis (intro, core skills, project deep dives, gap areas, behavioural, your questions).
-The model only writes the wording of each question and judges each answer. The code enforces the rules: a cap on follow-ups per topic
-and overall (`question_count // 3`), no repeated questions, no scores shown, and a planned fallback question when the model's output
-is unusable. `question_count` is the number of planned topics; follow-ups come on top.
-
-### Model choice and speed
-
-Benchmark on 8 sample documents (see `docs/benchmarks/`): `mistral:7b` 100% valid JSON, 88% skill recall, ~43 s per document;
-`qwen2.5:7b` 100% valid JSON, 91% recall, ~60 s. The gap is small, so `mistral:7b` stays the default. Switch with
-`AIA_INTERVIEWER_MODEL` and `AIA_EVALUATOR_MODEL`.
-
-On a CPU-only laptop the interviewer answers within about 10-20 s after a short answer and about a minute after a long one, because each
-answer is analysed to decide on follow-ups. A smaller interviewer model (for example `AIA_INTERVIEWER_MODEL=llama3.2:3b`) trades
-some question quality for speed.
-
-### The feedback report
-
-Reports are created only when you click **Generate feedback report** after an interview (nothing is scored automatically).
-Each answer is scored 1-5 on five rubric dimensions (accuracy, depth, relevance, structure, evidence), every score with a quote from
-the answer. All numbers are computed in code; the model only writes the text. Guards keep small models honest: a score above 3 needs a
-quote that really appears in the answer, very short answers cannot score high on depth or evidence, and off-topic answers cannot be
-relevant. The report has an overall score with a verdict, scores by topic and by dimension, top strengths and improvement areas
-(strengths only from topics that scored 60 or more), a per-question breakdown with a stronger sample answer, communication notes
-(length, filler words, vague wording) and a two-week study plan.
-
-Check the evaluator on your own model with `python backend/scripts/calibrate.py`: it must rank hand-labelled strong, average and weak
-answers (`data/samples/calibration.json`) in the right order. With `gemini-3.5-flash-lite`: strong 94-100, average 44-61, weak 7-26.
-
-### What works now
-
-- Web UI: create a session, run the analysis, review and correct the extracted skills and requirements, see the interview plan (topics only), take the interview in a chat room with streamed questions, adaptive follow-ups and resume-after-reload, generate and read the feedback report, drag-and-drop or paste a resume, JD and extra documents, watch each file go Uploaded → Parsing → Ready, and view the extracted text and detected sections
-- API:
-  - `POST /sessions`, `GET /sessions`, `GET /sessions/{id}`, `DELETE /sessions/{id}`
-  - `POST /sessions/{id}/analyze` (starts profile, JD and gap analysis), `GET` and `PATCH /sessions/{id}/analysis`
-  - `POST /sessions/{id}/plan`, `GET /sessions/{id}/plan` (topic outline only; the questions stay hidden)
-  - `WS /sessions/{id}/interview` (messages in: `start`, `answer`, `end`; out: `state`, `thinking`, `token`, `question`, `complete`, `error`), `GET /sessions/{id}/interview` (transcript), `POST /sessions/{id}/finish`
-  - `POST /sessions/{id}/report` (starts generation, 202), `GET /sessions/{id}/report` (status, progress, and the report when ready)
-  - `POST /sessions/{id}/documents` (multipart: `kind` = resume | jd | other, and `file`), `GET` list and detail, `DELETE`
-- Parsing: PDF (PyMuPDF with pdfplumber fallback), DOCX and TXT parsing, cleaning and section detection
-- Parsing runs in the background. Each document moves through `uploaded`, `parsing`, then `ready` or `failed`.
-
-Settings come from environment variables prefixed `AIA_`, for example `AIA_MAX_UPLOAD_MB`.
+Voice mode (local speech-to-text and text-to-speech), a progress dashboard over many sessions, coding and system-design rounds. See [docs/SOP.pdf](docs/SOP.pdf).
 
 ## Licence
 

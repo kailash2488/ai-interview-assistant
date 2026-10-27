@@ -80,6 +80,7 @@ async def _pump(ws: WebSocket, events, on_question=None) -> None:
     except InterviewError as exc:
         await ws.send_json({"type": "error", "message": str(exc), "retryable": False})
     except LLMError as exc:
+        log.warning("Interview turn failed for the model: %s", exc)
         await ws.send_json({"type": "error", "message": str(exc), "retryable": True})
     except WebSocketDisconnect:
         raise

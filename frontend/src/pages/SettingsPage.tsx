@@ -3,7 +3,7 @@ import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Field, Input, Select } from '../components/ui/field'
 import { cn } from '../lib/utils'
-import { api, type LLMSettings, type LLMTestResult, type Provider } from '../lib/api'
+import { api, type DataSummary, type LLMSettings, type LLMTestResult, type Provider } from '../lib/api'
 
 const OPTIONS: Array<{ id: Provider; title: string; blurb: string }> = [
   {
@@ -27,6 +27,9 @@ export function SettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [test, setTest] = useState<LLMTestResult | null>(null)
+  const [data, setData] = useState<DataSummary | null>(null)
+  const [confirmText, setConfirmText] = useState('')
+  const [dataNotice, setDataNotice] = useState<string | null>(null)
 
   function adopt(s: LLMSettings) {
     setSaved(s)
@@ -37,7 +40,19 @@ export function SettingsPage() {
 
   useEffect(() => {
     api.getLLMSettings().then(adopt).catch((e) => setError(e instanceof Error ? e.message : 'Failed to load settings'))
+    api.getDataSummary().then(setData).catch(() => undefined)
   }, [])
+
+  async function wipe() {
+    setError(null)
+    try {
+      setData(await api.deleteAllData())
+      setConfirmText('')
+      setDataNotice('All interviews, documents, answers and reports were deleted.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete your data')
+    }
+  }
 
   async function save(e: FormEvent) {
     e.preventDefault()
@@ -186,10 +201,32 @@ export function SettingsPage() {
         {needsKey && <p className="text-xs text-slate-500">Paste a key to use Gemini.</p>}
       </form>
 
-      {test && (
+ {test && (
         <p role="status" className={cn('rounded-md p-3 text-sm', test.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700')}>
           {test.ok ? `✓ ${test.provider} / ${test.model}, ${test.seconds}s. ${test.message}` : `✗ ${test.message}`}
         </p>
+      )}
+
+      {data && (
+        <Card className="space-y-3">
+          <h2 className="text-base font-semibold">Your data</h2>
+          <p className="text-sm text-slate-600">
+            Stored only on this computer: {data.sessions} interview{data.sessions === 1 ? '' : 's'}, {data.documents} document{data.documents === 1 ? '' : 's'},{' '}
+            {data.answers} answer{data.answers === 1 ? '' : 's'}, {data.reports} report{data.reports === 1 ? '' : 's'} ({(data.upload_bytes / 1024).toFixed(0)} KB of uploads).
+            You can delete one interview from the home page, or everything here. Your settings and API key are kept.
+          </p>
+          {dataNotice && (
+            <p role="status" className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800">
+              {dataNotice}
+            </p>
+          )}
+          <Field label="Type DELETE ALL to enable the button">
+            <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoComplete="off" />
+          </Field>
+          <Button type="button" variant="danger" disabled={confirmText !== 'DELETE ALL' || data.sessions === 0} onClick={wipe}>
+            Delete all my data
+          </Button>
+        </Card>
       )}
     </div>
   )

@@ -21,6 +21,20 @@ router = APIRouter(prefix="/sessions/{session_id}/documents", tags=["documents"]
 SINGLETON_KINDS = {DocumentKind.resume.value, DocumentKind.jd.value}
 
 
+def _reset_analysis(db: Session, session) -> None:
+    """The resume or JD changed, so the analysis and plan built from it are stale. Remove them; the user re-analyses."""
+    if session.questions:
+        raise HTTPException(status.HTTP_409_CONFLICT, "The interview has already started. Start a new interview to use different documents.")
+    if session.analysis is not None or session.plan is not None:
+        session.analysis = None
+        session.plan = None
+        session.status = "created"
+        try:
+            vectorstore.delete_session(session.id)
+        except Exception:
+            log.warning("Could not clear vectors for session %s", session.id, exc_info=True)
+
+
 def _safe_name(filename: str | None) -> str:
     return Path(filename or "upload").name[:200] or "upload"
 
@@ -33,7 +47,7 @@ async def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    get_session_or_404(session_id, db)
+    session = get_session_or_404(session_id, db)
     filename = _safe_name(file.filename)
     ext = Path(filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -51,6 +65,13 @@ async def upload_document(
         validate_signature(ext, data[:1024])
     except ParseError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+
+    if kind is DocumentKind.other:
+        extra = sum(1 for d in session.documents if d.kind == "other")
+        if extra >= settings.max_other_documents:
+            raise HTTPException(status.HTTP_409_CONFLICT, f"At most {settings.max_other_documents} extra documents per interview")
+    else:
+        _reset_analysis(db, session)
 
     # A session has one resume and one JD: a new upload replaces the old one.
     if kind.value in SINGLETON_KINDS:
@@ -89,6 +110,8 @@ def delete_document(session_id: str, document_id: str, db: Session = Depends(get
     doc = db.get(Document, document_id)
     if doc is None or doc.session_id != session_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
+    if doc.kind in SINGLETON_KINDS:
+        _reset_analysis(db, get_session_or_404(session_id, db))
     Path(doc.stored_path).unlink(missing_ok=True)
     db.delete(doc)
     db.commit()
