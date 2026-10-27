@@ -1,5 +1,7 @@
 """Build the interview plan in plain code from the analysis. The plan is data: inspectable and testable.
 The LLM only writes the words of each question later; it never decides the structure."""
+import re
+
 from app.schemas.analysis import CandidateProfile, GapAnalysis, JDRequirements
 from app.schemas.interview import Category, InterviewPlan, PlanItem
 
@@ -47,6 +49,14 @@ def _allocate(total: int, weights: dict[Category, float], available: dict[Catego
     return alloc
 
 
+_AREA_SUFFIX = re.compile(r"\s*\((core skill|gap area|project|behavioural)\)$", re.IGNORECASE)
+
+
+def clean_topic(name: str) -> str:
+    """Report area names carry a suffix when a skill is both a core topic and a gap; compare without it."""
+    return _AREA_SUFFIX.sub("", name).strip().lower()
+
+
 def _step(difficulty: str, delta: int) -> str:
     return LEVELS[max(0, min(2, LEVELS.index(difficulty) + delta))]
 
@@ -54,7 +64,10 @@ def _step(difficulty: str, delta: int) -> str:
 def build_plan(
     *, question_count: int, interview_type: str, difficulty: str, role: str,
     profile: CandidateProfile, requirements: JDRequirements, gap: GapAnalysis,
+    focus_topics: list[str] | None = None,
 ) -> InterviewPlan:
+    """`focus_topics` (for example the weak spots of an earlier attempt) are asked first within their category, and
+    their categories get a bigger share of the questions."""
     middle = max(1, question_count - 2)  # intro and closing are fixed
 
     core_skills = list(dict.fromkeys(
@@ -73,7 +86,22 @@ def build_plan(
         Category.core: len(core_skills), Category.project: len(project_topics),
         Category.gap: len(gap_skills), Category.behavioural: len(behavioural),
     }
-    alloc = _allocate(middle, WEIGHTS[interview_type], available)
+    order = [clean_topic(t) for t in (focus_topics or [])]  # given weakest first
+    focus = set(order)
+    weights = dict(WEIGHTS[interview_type])
+    if focus:
+        def first(items, name):  # focus topics move to the front (weakest first); the rest keep their order
+            rank = lambda x: order.index(clean_topic(name(x))) if clean_topic(name(x)) in focus else len(order)  # noqa: E731
+            return sorted(items, key=rank)
+
+        core_skills, project_topics = first(core_skills, str), first(project_topics, lambda t: t[0])
+        gap_skills, behavioural = first(gap_skills, str), first(behavioural, lambda b: b[0])
+        hits = {
+            Category.core: any(clean_topic(s) in focus for s in core_skills), Category.project: any(clean_topic(t[0]) in focus for t in project_topics),
+            Category.gap: any(clean_topic(s) in focus for s in gap_skills), Category.behavioural: any(clean_topic(b[0]) in focus for b in behavioural),
+        }
+        weights = {c: w * 1.6 if hits.get(c) else w for c, w in weights.items()}
+    alloc = _allocate(middle, weights, available)
 
     items: list[PlanItem] = []
 

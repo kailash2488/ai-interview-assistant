@@ -9,27 +9,28 @@ You choose where the AI runs, per account:
 
 Everything else is open source and free: FastAPI, React, SQLite and Qdrant.
 
-| Landing page | Your interviews |
+| Landing page | Dashboard |
 |---|---|
-| ![Landing page](docs/screenshots/01-landing-hero.png) | ![Home with scores](docs/screenshots/12-home-with-scores.png) |
-| **Analysis review** | **Live interview** |
-| ![Analysis review](docs/screenshots/06-analysis.png) | ![Interview](docs/screenshots/08-interview.png) |
+| ![Landing page](docs/screenshots/01-landing-hero.png) | ![Dashboard](docs/screenshots/19-dashboard.png) |
+| **Analysis review** | **Interview by voice** |
+| ![Analysis review](docs/screenshots/06-analysis.png) | ![Voice interview](docs/screenshots/17-voice-transcript.png) |
 | **Feedback report** | **Progress across attempts** |
 | ![Report](docs/screenshots/10-report.png) | ![Progress](docs/screenshots/13-progress-compare.png) |
 
-Watch a walkthrough from sign-up to report: [docs/demo.mp4](docs/demo.mp4). More screenshots (sign-up, settings, mobile) are in [docs/screenshots/](docs/screenshots/).
+Watch a walkthrough from sign-up to report: [docs/demo.mp4](docs/demo.mp4) (recorded with an earlier version of the interface, before the dashboard and voice mode). More screenshots (sign-up, settings, mobile, practising weak spots) are in [docs/screenshots/](docs/screenshots/).
 
 ## What it does
 
-1. **Sign up or log in.** Visitors see a landing page that explains the app. Each account has its own interviews, reports and model settings.
+1. **Sign up or log in.** Visitors see a landing page that explains the app. Each account has its own interviews, reports and model settings. Once signed in, the dashboard shows your suggested next step, latest and average score, practice streak, a score trend, the topics you should work on, how you score on each part of the rubric, milestones you have earned, and an interview tip.
 2. **Create an interview:** target role, type (technical, behavioural or mixed), difficulty and number of topics.
 3. **Upload documents:** resume (PDF, DOCX or TXT), job description (file or pasted text) and optional extras. Each file shows Uploaded, Parsing, then Ready, and you can read the extracted text.
 4. **Analysis:** the model extracts your profile and the job's requirements. You review and correct them (add or remove skills) before anything else happens. A gap analysis shows matching skills, gaps and claims the interviewer will probe.
 5. **Plan:** a topic outline (introduction, core skills, project deep dives, gap areas, behavioural, your questions). The questions stay hidden so the interview feels real.
-6. **Live interview:** a chat with streamed questions and adaptive follow-ups. The interviewer never shows scores or hints. If you reload the page you pick up where you left off.
+6. **Live interview:** a chat with streamed questions and adaptive follow-ups. The interviewer never shows scores or hints. If you reload the page you pick up where you left off. Switch on **voice mode** to hear each question and answer by speaking (see [Voice mode](#voice-mode)).
 7. **Feedback report (only when you ask for it):** every answer is scored 1 to 5 on accuracy, depth, relevance, structure and evidence, each with a quote from your answer. You get an overall score and verdict, scores by topic and dimension, strengths and improvement areas, a per-question breakdown with a stronger sample answer, communication notes and a two-week study plan. Download it as a PDF.
-8. **Progress:** compare two attempts side by side to see what improved.
-9. **Privacy controls:** delete one interview, all your data, or your whole account from the app.
+8. **Practise again:** start a new interview from the same documents without uploading or analysing anything twice, either the same interview again or one that asks your weakest topics first.
+9. **Progress:** compare two attempts side by side to see what improved.
+10. **Privacy controls:** delete one interview, all your data, or your whole account from the app.
 
 ## Quick start with Docker
 
@@ -88,6 +89,26 @@ If you used an earlier version without accounts, the first account you create ad
 - **There is no email service**, so there is no "forgot password" link and no email verification. The server owner can reset a password with `python backend/scripts/reset_password.py someone@example.com` (in Docker: `docker compose exec backend python -m scripts.reset_password someone@example.com`).
 - **Set `AIA_ALLOW_SIGNUP=false`** once your accounts exist, and **`AIA_COOKIE_SECURE=true`** when serving over HTTPS.
 
+## Voice mode
+
+Answer by speaking instead of typing, and hear each question read aloud. Everything runs locally: [faster-whisper](https://github.com/SYSTRAN/faster-whisper) turns your recording into text and [Piper](https://github.com/rhasspy/piper) speaks the questions, so your voice never leaves the server you run. It is optional and off by default.
+
+```bash
+cd backend
+pip install -e ".[voice]"
+python scripts/download_voice.py       # about 200 MB, once
+```
+
+With Docker: `INSTALL_VOICE=1 docker compose up --build`, then `docker compose exec backend python scripts/download_voice.py` once. (The voice image has not been built and tested; the non-Docker path has.)
+
+In the interview room turn on **Voice mode**. Press the microphone, speak, and it stops by itself when you go quiet (or press the square). The text appears in the answer box so you can fix mistakes before you send it. Your pace (words per minute) and long pauses are measured from the recording and shown in the report's communication section.
+
+- If the server has no speech models, voice mode says so, and questions can still be read aloud by your browser's own voice. Typing always works.
+- Browsers only allow microphone access on `localhost` or over HTTPS.
+- The speech-to-text model is English only and sometimes mishears technical terms (it heard "asyncio" as "a sync I.O."). That is why you can edit the text before sending. `AIA_WHISPER_MODEL=small.en` is more accurate and slower.
+- Filler words ("um", "uh") are not reported for spoken answers, because speech recognition usually leaves them out of the transcript.
+- The first question and the first transcription load the models and take a few extra seconds.
+
 ## Choosing a model
 
 | | Local (Ollama) | Gemini |
@@ -118,6 +139,8 @@ Server settings come from environment variables prefixed `AIA_`, or a `backend/.
 | `AIA_OLLAMA_URL` | `http://localhost:11434` | Where Ollama runs |
 | `AIA_INTERVIEWER_MODEL`, `AIA_EVALUATOR_MODEL` | `mistral:7b` | Ollama chat models |
 | `AIA_EMBED_MODEL` | `nomic-embed-text` | Ollama embedding model |
+| `AIA_WHISPER_MODEL` | `base.en` | Speech-to-text model for voice mode |
+| `AIA_PIPER_VOICE` | `en_US-lessac-medium` | Text-to-speech voice for voice mode |
 | `AIA_MAX_UPLOAD_MB` | `10` | Upload size limit |
 | `AIA_MAX_OTHER_DOCUMENTS` | `10` | Extra documents per interview |
 
@@ -130,6 +153,8 @@ React (Vite)  --REST + WebSocket-->  FastAPI
                                        |- analysis    profile, requirements, gap analysis (gap in plain code)
                                        |- interview   plan (plain code) + state machine + interviewer
                                        |- feedback    rubric evaluator, guards, report, PDF
+                                       |- voice       optional local speech-to-text and text-to-speech
+                                       |- dashboard   stats, trend, weak topics, milestones, practise again
                                        |- llm         Ollama or Gemini client, JSON-schema output, retry
                                        +- SQLite + embedded Qdrant
 ```
@@ -145,11 +170,11 @@ Design rules:
 ## Tests
 
 ```bash
-cd backend && pytest                  # 240+ tests; add --cov=app for coverage (about 97%)
-cd frontend && npm test               # 80+ tests
+cd backend && pytest                  # 290+ tests; add --cov=app for coverage (about 97%)
+cd frontend && npm test               # 150 tests
 ```
 
-The model is replaced by a fake in tests, so they need no network or API key.
+The language model is replaced by a fake in tests, so they need no network or API key. A few voice tests use the real local speech models and are skipped automatically when those are not installed.
 
 ## Project layout
 
@@ -157,7 +182,7 @@ The model is replaced by a fake in tests, so they need no network or API key.
 backend/app/api         routers (auth, sessions, documents, analysis, interview, report, history, settings, data)
 backend/app/services    ingestion, analysis, interview, feedback, llm, vectorstore
 backend/app/prompts     versioned prompt templates
-backend/scripts         benchmark.py, calibrate.py, check_llm.py, reset_password.py
+backend/scripts         benchmark.py, calibrate.py, check_llm.py, reset_password.py, download_voice.py
 frontend/src            pages, components, API client, auth state
 data/samples            sample resumes, job descriptions, calibration answers
 docs                    SOP.pdf (the original plan), benchmarks, screenshots, demo video
@@ -167,13 +192,13 @@ docs                    SOP.pdf (the original plan), benchmarks, screenshots, de
 
 - Local models on a CPU-only laptop are slow. Use Gemini or a machine with a GPU for a smooth experience.
 - Scores come from a rubric applied by a language model, so they are good for comparing your own attempts over time and for spotting weak areas. They are not a hiring decision.
-- Text only and English only. There is no email verification and no emailed password reset (see above for the owner's reset tool).
+- English only. Voice mode needs the optional speech models (see above). There is no email verification and no emailed password reset (see above for the owner's reset tool).
 - Scanned PDFs are not supported (no OCR).
 - Long jobs run as background tasks inside the API process. If you restart the backend during an analysis or report, start it again from the app. Run a single backend process, because login throttling and background jobs live in memory.
 
 ## Roadmap
 
-Voice mode (local speech-to-text and text-to-speech), a progress dashboard over many sessions, coding and system-design rounds. See [docs/SOP.pdf](docs/SOP.pdf).
+Coding and system-design interview rounds, company-specific question banks from your own notes, and more languages. See [docs/SOP.pdf](docs/SOP.pdf).
 
 ## Licence
 

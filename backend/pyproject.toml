@@ -22,6 +22,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest"]
+voice = ["faster-whisper", "piper-tts"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -22,6 +22,8 @@ class InterviewSession(Base):
     # Owner. NULL only for interviews created before accounts existed; the first account to sign up adopts them.
     user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     title: Mapped[str] = mapped_column(String(200))
+    # Topics to prioritise when the plan is built ("practise my weak spots"); None for a normal interview.
+    focus_topics: Mapped[list | None] = mapped_column(JSON, nullable=True)
     target_role: Mapped[str] = mapped_column(String(200))
     interview_type: Mapped[str] = mapped_column(String(20))
     difficulty: Mapped[str] = mapped_column(String(20))
@@ -124,6 +126,8 @@ class Answer(Base):
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Quick per-answer analysis used for flow control; never sent to the candidate during the interview.
     analysis_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Spoken answers only: seconds, words per minute, pauses (measured from the recording).
+    voice_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     question: Mapped[Question] = relationship(back_populates="answer")

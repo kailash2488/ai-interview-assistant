@@ -67,3 +67,19 @@ def run_analysis(session_id: str) -> None:
             log.exception("Analysis crashed for session %s", session_id)
             row.status, row.error = "failed", "Unexpected error during analysis"
         db.commit()
+
+
+def reindex_session(session_id: str) -> None:
+    """Background task: rebuild the document search index for a session (used after copying documents into a new one)."""
+    with SessionLocal() as db:
+        session = db.get(InterviewSession, session_id)
+        if session is None:
+            return
+        docs = list(db.scalars(select(Document).where(Document.session_id == session_id, Document.status == "ready")))
+        indexable = [{"id": d.id, "kind": d.kind, "filename": d.filename, "sections": d.sections_json or []} for d in docs]
+        try:
+            llm = get_llm(config_for_user(db, session.user_id))
+            if getattr(llm, "supports_embeddings", True):
+                vectorstore.index_session(session_id, indexable, llm)
+        except Exception as exc:  # retrieval is an enhancement; the interview works without it
+            log.info("Reindex skipped for session %s: %s", session_id, exc)

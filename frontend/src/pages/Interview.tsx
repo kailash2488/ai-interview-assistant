@@ -5,7 +5,10 @@ import { Stepper } from '../components/Stepper'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Textarea } from '../components/ui/field'
-import { api, wsUrl, type ServerMessage, type Turn } from '../lib/api'
+import { VoicePanel } from '../components/VoicePanel'
+import { api, wsUrl, type ServerMessage, type Turn, type VoiceMetrics } from '../lib/api'
+import { useVoice } from '../lib/useVoice'
+import { Mic } from 'lucide-react'
 
 type Phase = 'connecting' | 'thinking' | 'waiting' | 'complete' | 'error' | 'disconnected'
 
@@ -25,6 +28,16 @@ export function Interview() {
   const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null)
   const [draft, setDraft] = useState('')
   const [elapsed, setElapsed] = useState(0)
+  const voiceMetrics = useRef<VoiceMetrics | null>(null)
+  const speakRef = useRef<((text: string) => void) | null>(null)
+  const draftRef = useRef<HTMLTextAreaElement | null>(null)
+
+  const voice = useVoice(sessionId, (text, metrics) => {
+    voiceMetrics.current = metrics
+    setDraft((d) => (d.trim() ? `${d.trim()} ${text}` : text))
+    draftRef.current?.focus()
+  })
+  speakRef.current = (text) => void voice.speak(text)
 
   const send = useCallback((payload: object) => socketRef.current?.send(JSON.stringify(payload)), [])
 
@@ -64,6 +77,7 @@ export function Interview() {
           })
           setElapsed(0)
           setPhase('waiting')
+          if (!msg.replay) speakRef.current?.(`${msg.ack ? `${msg.ack} ` : ''}${msg.text}`)
           break
         case 'complete':
           setStreaming('')
@@ -106,7 +120,10 @@ export function Interview() {
     setTurns((prev) => prev.map((t, i) => (i === prev.length - 1 ? { ...t, answer: text } : t)))
     setDraft('')
     setPhase('thinking')
-    send({ type: 'answer', text })
+    voice.cancelRecording()
+    voice.stopSpeaking()
+    send({ type: 'answer', text, ...(voiceMetrics.current ? { voice: voiceMetrics.current } : {}) })
+    voiceMetrics.current = null
   }
 
   function endInterview() {
@@ -149,6 +166,16 @@ export function Interview() {
           )}
         </div>
         <div className="flex items-center gap-3 text-sm text-slate-600">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={voice.enabled}
+            aria-label="Voice mode"
+            onClick={() => voice.toggle(!voice.enabled)}
+            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${voice.enabled ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}
+          >
+            <Mic className="size-4" aria-hidden /> Voice mode
+          </button>
           {canAnswer && <span className="tabular-nums text-slate-400">{mmss}</span>}
           {phase !== 'complete' && (
             <Button variant="secondary" onClick={endInterview} disabled={phase === 'connecting' || phase === 'disconnected'}>
@@ -229,7 +256,9 @@ export function Interview() {
         </Card>
       ) : (
         <Card className="space-y-3 p-4 sm:p-5">
+          {voice.enabled && <VoicePanel voice={voice} canAnswer={canAnswer} lastQuestion={turns.length ? turns[turns.length - 1].text : null} />}
           <Textarea
+            ref={draftRef}
             rows={4}
             value={draft}
             maxLength={MAX_ANSWER}

@@ -115,7 +115,7 @@ class InterviewEngine:
             else:
                 yield from self._advance(db, ctx)
 
-    def answer(self, text: str, duration_seconds: int | None = None) -> Iterator[dict]:
+    def answer(self, text: str, duration_seconds: int | None = None, voice: dict | None = None) -> Iterator[dict]:
         text = text.strip()
         if not text:
             raise InterviewError("Please type an answer first")
@@ -128,7 +128,7 @@ class InterviewEngine:
             questions = self._questions(ctx.session)
             if not questions or questions[-1].answer is not None:
                 raise InterviewError("There is no open question to answer")
-            questions[-1].answer = Answer(text=text, duration_seconds=duration_seconds)
+            questions[-1].answer = Answer(text=text, duration_seconds=duration_seconds, voice_json=voice or None)
             db.commit()
             yield from self._advance(db, ctx)
 

@@ -5,6 +5,7 @@ import { Stepper } from '../components/Stepper'
 import { ScoreBars } from '../components/ScoreBars'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
+import { PracticeActions } from '../components/PracticeActions'
 import { api, reportPdfUrl, type Report } from '../lib/api'
 
 const POLL_MS = 2000
@@ -13,6 +14,7 @@ export function ReportPage() {
   const { sessionId = '' } = useParams()
   const [report, setReport] = useState<Report | null | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
+  const [weak, setWeak] = useState<string[]>([])
 
   const load = useCallback(async () => {
     try {
@@ -25,6 +27,12 @@ export function ReportPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const ready = report?.status === 'ready'
+  useEffect(() => {
+    if (!ready) return
+    api.weakTopics(sessionId).then((w) => setWeak(Array.isArray(w) ? w : [])).catch(() => setWeak([]))
+  }, [ready, sessionId])
 
   const running = report?.status === 'running'
   useEffect(() => {
@@ -215,6 +223,13 @@ export function ReportPage() {
             <li key={o}>{o}</li>
           ))}
         </ul>
+        {r.communication.voice && (
+          <p className="rounded-xl bg-brand-50 px-3.5 py-2.5 text-sm text-brand-900">
+            <strong className="font-semibold">Spoken answers:</strong> {r.communication.voice.answers}
+            {r.communication.voice.avg_wpm !== null && ` · about ${r.communication.voice.avg_wpm} words per minute`} · {r.communication.voice.total_pauses} long pause
+            {r.communication.voice.total_pauses === 1 ? '' : 's'} (longest {r.communication.voice.longest_pause}s)
+          </p>
+        )}
         <p className="text-xs text-slate-400">
           {r.communication.answers} answers · average {r.communication.avg_words} words (shortest {r.communication.shortest_words}, longest{' '}
           {r.communication.longest_words})
@@ -236,6 +251,11 @@ export function ReportPage() {
             </ul>
           </div>
         ))}
+      </Card>
+      <Card className="space-y-3 border-brand-200 bg-gradient-to-br from-brand-50 to-white">
+        <h2 className="text-lg font-semibold">Practise again</h2>
+        <p className="text-sm text-slate-600">Start a new interview from the same documents. Nothing to upload or analyse again.</p>
+        <PracticeActions sessionId={sessionId} weak={weak} />
       </Card>
       <p className="text-xs text-slate-400">Scored by {report.model}. Scores come from a rubric, so use them to compare your own attempts over time.</p>
     </div>

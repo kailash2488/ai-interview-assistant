@@ -15,6 +15,7 @@ export interface Session {
   status: string
   created_at: string
   overall_score: number | null
+  focus_topics: string[] | null
 }
 
 export type SessionCreate = Pick<
@@ -203,6 +204,7 @@ export interface ReportBody {
     vague_phrases: Record<string, number>
     avg_seconds: number | null
     observations: string[]
+    voice: { answers: number; avg_wpm: number | null; total_pauses: number; avg_pauses: number; longest_pause: number } | null
   }
   improvement_plan: Array<{ timeframe: string; focus: string; actions: string[] }>
   coverage: { planned_topics: number; questions_asked: number; evaluated: number; unanswered: number }
@@ -226,6 +228,49 @@ export interface User {
   name: string
   created_at: string
 }
+
+export interface DashboardStats {
+  interviews: number
+  finished: number
+  reports: number
+  avg_score: number | null
+  best_score: number | null
+  latest_score: number | null
+  change: number | null
+  streak_days: number
+  practice_days_30: number
+  answers: number
+}
+export interface TopicStat {
+  name: string
+  score: number
+  attempts: number
+}
+export interface Dashboard {
+  stats: DashboardStats
+  trend: Array<{ session_id: string; title: string; target_role: string; date: string; score: number }>
+  weakest: TopicStat[]
+  strongest: TopicStat[]
+  dimensions: Array<{ key: string; label: string; score: number; change: number | null }>
+  next_action: { kind: 'new' | 'upload' | 'analyse' | 'plan' | 'start' | 'continue' | 'report'; title: string | null; label: string; description: string; session_id: string | null; href: string }
+  recent: Array<{ session_id: string; title: string; status: string; score: number | null; at: string }>
+  badges: Array<{ id: string; label: string; description: string; earned: boolean }>
+}
+
+export interface VoiceStatus {
+  stt: { available: boolean; model: string; loaded: boolean; hint: string | null }
+  tts: { available: boolean; voice: string; hint: string | null }
+}
+export interface Transcript {
+  text: string
+  seconds: number
+  words: number
+  wpm: number | null
+  pauses: number
+  longest_pause: number
+  fillers: number
+}
+export type VoiceMetrics = Pick<Transcript, 'seconds' | 'words' | 'wpm' | 'pauses' | 'longest_pause' | 'fillers'>
 
 export interface HistoryItem {
   session_id: string
@@ -266,6 +311,8 @@ export interface DataSummary {
   reports: number
   upload_bytes: number
 }
+
+export const speakUrl = () => `${BASE}/voice/speak`
 
 export const reportPdfUrl = (sid: string) => `${BASE}/sessions/${sid}/report/pdf`
 
@@ -367,6 +414,17 @@ export const api = {
       if (e instanceof ApiError && e.status === 404) return null
       throw e
     }
+  },
+  dashboard: () => request<Dashboard>('/dashboard'),
+  retry: (sid: string, focus: 'same' | 'weak', topics?: string[]) =>
+    request<Session>(`/sessions/${sid}/retry`, json({ focus, ...(topics && topics.length ? { topics } : {}) })),
+  weakTopics: (sid: string) => request<string[]>(`/sessions/${sid}/weak-topics`),
+  voiceStatus: () => request<VoiceStatus>('/voice/status'),
+  transcribe: (audio: Blob, sessionId?: string) => {
+    const form = new FormData()
+    form.append('file', audio, 'answer.webm')
+    if (sessionId) form.append('session_id', sessionId)
+    return request<Transcript>('/voice/transcribe', { method: 'POST', body: form })
   },
   getHistory: () => request<HistoryItem[]>('/history'),
   compare: (a: string, b: string) => request<Comparison>(`/history/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`),

@@ -6,6 +6,13 @@ import { AUTH_EXPIRED } from './lib/api'
 
 const USER = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', created_at: '2026-01-01T00:00:00Z' }
 
+const EMPTY_DASHBOARD = {
+  stats: { interviews: 0, finished: 0, reports: 0, avg_score: null, best_score: null, latest_score: null, change: null, streak_days: 0, practice_days_30: 0, answers: 0 },
+  trend: [], weakest: [], strongest: [], dimensions: [], recent: [],
+  next_action: { kind: 'new', title: null, label: 'Start a new interview', description: 'Upload a resume and a job description.', session_id: null, href: '/new' },
+  badges: [{ id: 'first', label: 'First interview', description: 'Finish your first mock interview', earned: false }],
+}
+
 interface World {
   user: typeof USER | null
   allowSignup: boolean
@@ -40,6 +47,7 @@ function installWorld(partial: Partial<World> = {}): World {
         world.user = null
         return new Response(null, { status: 204 })
       }
+      if (path === '/dashboard') return json(EMPTY_DASHBOARD)
       if (path === '/sessions') return json([])
       if (path === '/history') return json([])
       return json({ detail: 'not mocked' }, 404)
@@ -67,7 +75,7 @@ describe('landing page and routing', () => {
     expect(screen.getAllByRole('link', { name: 'Log in' }).length).toBeGreaterThan(0)
     expect(screen.getByRole('heading', { name: /Everything you need to prepare/ })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Good questions' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Your interviews' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /ready to practise/ })).not.toBeInTheDocument()
   })
 
   it('does not overclaim: the privacy section tells the truth about Gemini', async () => {
@@ -89,15 +97,16 @@ describe('landing page and routing', () => {
   it('shows the app to a signed-in user', async () => {
     installWorld({ user: USER })
     visit('/')
-    expect(await screen.findByRole('heading', { name: 'Your interviews' })).toBeInTheDocument()
-    expect(screen.getByText(/Welcome back, Ada/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /ready to practise/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Hi Ada, ready to practise?' })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Suggested next step' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 1, name: /Practice the interview/ })).not.toBeInTheDocument()
   })
 
   it('keeps signed-in users away from the login page', async () => {
     installWorld({ user: USER })
     visit('/login')
-    expect(await screen.findByRole('heading', { name: 'Your interviews' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /ready to practise/ })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/')
   })
 })
@@ -140,7 +149,7 @@ describe('login', () => {
     await userEvent.type(await screen.findByLabelText('Email'), 'ada@example.com')
     await userEvent.type(screen.getByLabelText('Password'), 'a long password')
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }))
-    expect(await screen.findByRole('heading', { name: 'Your interviews' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /ready to practise/ })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/')
   })
 
@@ -164,7 +173,7 @@ describe('signup', () => {
     await userEvent.type(screen.getByLabelText('Email'), 'grace@example.com')
     await userEvent.type(screen.getByLabelText('Password'), 'eight chars+')
     await userEvent.click(screen.getByRole('button', { name: 'Create account' }))
-    expect(await screen.findByText(/Welcome back, Grace/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Hi Grace, ready to practise?' })).toBeInTheDocument()
     expect(world.calls.find((c) => c.path === '/auth/signup')?.body).toEqual({ email: 'grace@example.com', name: 'Grace Hopper', password: 'eight chars+' })
   })
 

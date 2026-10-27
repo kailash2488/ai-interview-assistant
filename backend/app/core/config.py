@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     llm_num_ctx: int = 6144
     llm_max_retries: int = 1
 
+    # --- voice (optional; needs `pip install ".[voice]"` and the models from scripts/download_voice.py) ---
+    voice_dir: Path = BACKEND_DIR / "data" / "voice"
+    whisper_model: str = "base.en"       # speech-to-text; "small.en" is more accurate and slower
+    piper_voice: str = "en_US-lessac-medium"
+    voice_max_audio_mb: int = 15
+    voice_max_seconds: int = 300
+    voice_pause_seconds: float = 1.5     # a silence this long between phrases counts as a pause
+
     # --- accounts ---
     allow_signup: bool = True            # set AIA_ALLOW_SIGNUP=false once your accounts exist
     session_days: int = 30

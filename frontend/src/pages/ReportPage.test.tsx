@@ -25,7 +25,7 @@ const ready: Report = {
       missing_points: ['thread pool for blocking calls'], feedback: 'Good start, mention blocking calls.', sample_answer: 'I use asyncio for IO-bound services.',
       notes: ['depth: capped at 2 because the answer was very short'],
     }],
-    communication: { answers: 2, avg_words: 55, shortest_words: 40, longest_words: 70, one_line_answers: 0, rambling_answers: 0, filler_words: {}, vague_phrases: {}, avg_seconds: 45, observations: ['Your answer length was in a good range.'] },
+    communication: { answers: 2, avg_words: 55, shortest_words: 40, longest_words: 70, one_line_answers: 0, rambling_answers: 0, filler_words: {}, vague_phrases: {}, avg_seconds: 45, observations: ['Your answer length was in a good range.'], voice: null },
     improvement_plan: [{ timeframe: 'Week 1', focus: 'Docker', actions: ['Build an image', 'Read the layers guide'] }],
     coverage: { planned_topics: 6, questions_asked: 6, evaluated: 2, unanswered: 1 },
   },
@@ -49,7 +49,46 @@ const renderPage = () =>
   )
 afterEach(() => vi.unstubAllGlobals())
 
+function routed(report: Report, weak: string[]) {
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    const path = String(url).replace(/^\/api/, '')
+    if (path === '/sessions/s1/report') return new Response(JSON.stringify(report))
+    if (path === '/sessions/s1/weak-topics') return new Response(JSON.stringify(weak))
+    return new Response('{}', { status: 404 })
+  }))
+}
+
 describe('Report page', () => {
+  it('offers to practise again, naming the weak spots', async () => {
+    routed(ready, ['Docker', 'SQL'])
+    renderPage()
+    expect(await screen.findByRole('heading', { name: 'Practise again' })).toBeInTheDocument()
+    expect(await screen.findByText(/Weak spots to focus on: Docker, SQL/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Practise my weak spots/ })).toBeEnabled()
+    expect(screen.getByRole('button', { name: /Try the same interview again/ })).toBeEnabled()
+  })
+
+  it('disables the weak-spot option when every topic scored well', async () => {
+    routed(ready, [])
+    renderPage()
+    await screen.findByRole('heading', { name: 'Practise again' })
+    expect(screen.getByRole('button', { name: /Practise my weak spots/ })).toBeDisabled()
+  })
+
+  it('shows speaking pace and pauses only for interviews answered by voice', async () => {
+    const spoken: Report = { ...ready, report: { ...ready.report!, communication: { ...ready.report!.communication, voice: { answers: 5, avg_wpm: 132, total_pauses: 2, avg_pauses: 0.4, longest_pause: 2.6 } } } }
+    routed(spoken, [])
+    renderPage()
+    expect((await screen.findByText(/Spoken answers:/)).closest('p')).toHaveTextContent('Spoken answers: 5 · about 132 words per minute · 2 long pauses (longest 2.6s)')
+  })
+
+  it('shows no speaking line for typed interviews', async () => {
+    routed(ready, [])
+    renderPage()
+    await screen.findByRole('heading', { name: 'Practise again' })
+    expect(screen.queryByText(/Spoken answers:/)).not.toBeInTheDocument()
+  })
+
   it('does not generate anything until the user clicks the button', async () => {
     const fetchFn = stub((_u, init) => (init?.method === 'POST' ? [202, { ...ready, status: 'running', report: null }] : [404, { detail: 'No report yet' }]))
     renderPage()

@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import { cn } from '../../lib/utils'
 
 const CONTROL =
@@ -23,8 +23,8 @@ export function Field({ label, hint, error, children }: { label: string; hint?: 
   )
 }
 
-export const Input = (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} className={cn(CONTROL, props.className)} />
+export const Input = (props: ComponentProps<'input'>) => <input {...props} className={cn(CONTROL, props.className)} />
 
-export const Select = (props: SelectHTMLAttributes<HTMLSelectElement>) => <select {...props} className={cn(CONTROL, 'pr-9', props.className)} />
+export const Select = (props: ComponentProps<'select'>) => <select {...props} className={cn(CONTROL, 'pr-9', props.className)} />
 
-export const Textarea = (props: TextareaHTMLAttributes<HTMLTextAreaElement>) => <textarea {...props} className={cn(CONTROL, props.className)} />
+export const Textarea = (props: ComponentProps<'textarea'>) => <textarea {...props} className={cn(CONTROL, props.className)} />

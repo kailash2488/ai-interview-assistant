@@ -132,8 +132,8 @@ def run_report(session_id: str, reuse: bool = False) -> None:
             planned_scored = sum(1 for it in plan.items if it.category in ANALYSED)
             label, basis = aggregate.verdict(overall, len(reports), planned_scored)
             areas, dims_avg = aggregate.area_scores(reports), aggregate.dimension_scores(reports)
-            comm = communication.analyse([(q.answer.text, q.answer.duration_seconds) for q in session.questions if q.answer is not None
-                                          and plan.items[q.plan_index].category in ANALYSED])
+            scored = [q for q in session.questions if q.answer is not None and plan.items[q.plan_index].category in ANALYSED]
+            comm = communication.analyse([(q.answer.text, q.answer.duration_seconds) for q in scored], [q.answer.voice_json or {} for q in scored])
             try:
                 narrative = with_backoff(_narrative, llm, role=session.target_role, overall=overall, verdict_label=label,
                                          areas=areas, dims=dims_avg, questions=reports, comm=comm)

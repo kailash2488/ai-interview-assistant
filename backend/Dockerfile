@@ -2,7 +2,9 @@ FROM python:3.11-slim
 WORKDIR /srv
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 COPY pyproject.toml ./
-RUN mkdir -p app && touch app/__init__.py && pip install .
+ARG INSTALL_VOICE=0
+# Voice mode (local speech-to-text and text-to-speech) adds about 400 MB; build with INSTALL_VOICE=1 to include it.
+RUN mkdir -p app && touch app/__init__.py && pip install ".$( [ "$INSTALL_VOICE" = "1" ] && echo '[voice]' )"
 COPY app ./app
 COPY scripts ./scripts
 # Run as an unprivileged user; data and uploads live on volumes owned by it.

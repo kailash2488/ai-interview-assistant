@@ -36,3 +36,4 @@ class SessionOut(BaseModel):
     status: str
     created_at: datetime
     overall_score: int | None = None
+    focus_topics: list[str] | None = None

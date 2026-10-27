@@ -68,6 +68,10 @@ def build_html(body: ReportBody, title: str, created: str) -> str:
         h.append(f"<h3>{_e(step.timeframe)}: {_e(step.focus)}</h3><ul>" + "".join(f"<li>{_e(a)}</li>" for a in step.actions) + "</ul>")
 
     h.append("<h2>How you communicated</h2><ul>" + "".join(f"<li>{_e(o)}</li>" for o in body.communication.observations) + "</ul>")
+    v = body.communication.voice
+    if v:
+        pace = f"about {v.avg_wpm} words per minute" if v.avg_wpm else "pace not measurable"
+        h.append(f"<p class='muted'>Spoken answers: {v.answers}; {pace}; {v.total_pauses} long pauses (longest {v.longest_pause:g}s).</p>")
 
     h.append("<h2>Question by question</h2>")
     for q in body.questions:

@@ -83,6 +83,16 @@ class AreaScore(BaseModel):
     answers: int
 
 
+class VoiceNotes(BaseModel):
+    """Measured from recordings of spoken answers (only present when the interview used voice)."""
+
+    answers: int
+    avg_wpm: int | None
+    total_pauses: int
+    avg_pauses: float
+    longest_pause: float
+
+
 class CommunicationNotes(BaseModel):
     answers: int
     avg_words: int
@@ -94,6 +104,7 @@ class CommunicationNotes(BaseModel):
     vague_phrases: dict[str, int]
     avg_seconds: int | None
     observations: list[str]
+    voice: VoiceNotes | None = None
 
 
 class Coverage(BaseModel):

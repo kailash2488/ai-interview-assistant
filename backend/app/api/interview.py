@@ -42,6 +42,7 @@ def create_plan(session_id: str, db: Session = Depends(get_db), user: User = Dep
         question_count=session.question_count, interview_type=session.interview_type, difficulty=session.difficulty,
         role=session.target_role, profile=CandidateProfile.model_validate(analysis.profile_json),
         requirements=JDRequirements.model_validate(analysis.requirements_json), gap=GapAnalysis.model_validate(analysis.gap_json),
+        focus_topics=session.focus_topics,
     )
     if session.plan is None:
         session.plan = InterviewPlanRow(plan_json=plan.model_dump(mode="json"))
@@ -90,6 +91,23 @@ async def _pump(ws: WebSocket, events, on_question=None) -> None:
     except Exception:
         log.exception("Interview turn failed")
         await ws.send_json({"type": "error", "message": "Something went wrong. Please try again.", "retryable": True})
+
+
+VOICE_LIMITS = {"seconds": 3600, "words": 10000, "wpm": 400, "pauses": 200, "longest_pause": 600.0, "fillers": 500}
+
+
+def clean_voice(raw) -> dict | None:
+    """Spoken-answer measurements sent by the browser (taken from the server's own transcription). Only known numeric
+    fields within sane limits are kept; anything else is dropped."""
+    if not isinstance(raw, dict):
+        return None
+    out = {}
+    for key, top in VOICE_LIMITS.items():
+        value = raw.get(key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= top:
+            continue
+        out[key] = round(value, 1) if isinstance(top, float) else int(value)
+    return out or None
 
 
 def _origin_allowed(ws: WebSocket) -> bool:
@@ -149,7 +167,7 @@ async def interview_socket(ws: WebSocket, session_id: str):
                     await ws.send_json({"type": "error", "message": "Invalid message", "retryable": False})
                     continue
                 duration = int(time.monotonic() - asked_at[0]) if asked_at[0] else None
-                await _pump(ws, engine.answer(text, duration), mark)
+                await _pump(ws, engine.answer(text, duration, clean_voice(message.get("voice"))), mark)
             elif kind == "end":
                 await run_in_threadpool(engine.finish)
                 await ws.send_json({"type": "complete", "message": "Interview ended."})

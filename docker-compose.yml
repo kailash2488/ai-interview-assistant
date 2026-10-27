@@ -6,9 +6,15 @@
 #       a) Ollama already running on this computer: nothing to do, the backend reaches it via host.docker.internal.
 #       b) Ollama in Docker:  OLLAMA_URL=http://ollama:11434 docker compose --profile local-llm up --build
 #          docker compose exec ollama ollama pull mistral:7b && docker compose exec ollama ollama pull nomic-embed-text
+#
+# Voice mode (optional): INSTALL_VOICE=1 docker compose up --build, then once:
+#   docker compose exec backend python scripts/download_voice.py     (about 200 MB, kept in the data volume)
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        INSTALL_VOICE: ${INSTALL_VOICE:-0}   # 1 adds local voice mode: INSTALL_VOICE=1 docker compose up --build
     environment:
       AIA_OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       AIA_ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}        # set to false once your accounts exist
