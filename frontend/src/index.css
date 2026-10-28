@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -27,6 +28,37 @@ body {
   @apply bg-[#f6f7fb] font-sans text-slate-900 antialiased;
   font-feature-settings: "cv11", "ss01";
   text-rendering: optimizeLegibility;
+}
+
+/* The application predates theme variants on individual screens. These semantic remaps keep every
+   existing surface readable in dark mode while new components can still use normal utility classes. */
+.dark body {
+  background: #090e1a;
+  color: #e5e7eb;
+}
+.dark [class~="bg-white"],
+.dark [class~="bg-white/80"],
+.dark [class~="bg-white/90"],
+.dark [class~="bg-white/60"] { background-color: rgb(15 23 42 / 0.94) !important; }
+.dark [class~="bg-slate-50"],
+.dark [class~="bg-slate-100"] { background-color: #172033 !important; }
+.dark [class~="hover:bg-slate-50"]:hover,
+.dark [class~="hover:bg-slate-100"]:hover { background-color: #202b40 !important; }
+.dark [class~="text-slate-900"],
+.dark [class~="text-slate-800"],
+.dark [class~="text-slate-700"] { color: #f1f5f9 !important; }
+.dark [class~="text-slate-600"] { color: #cbd5e1 !important; }
+.dark [class~="text-slate-500"],
+.dark [class~="text-slate-400"] { color: #94a3b8 !important; }
+.dark [class*="border-slate-100"],
+.dark [class*="border-slate-200"],
+.dark [class*="border-slate-300"] { border-color: rgb(71 85 105 / 0.72) !important; }
+.dark [class~="to-white"] { --tw-gradient-to: #0f172a var(--tw-gradient-to-position) !important; }
+.dark .bg-glow {
+  background:
+    radial-gradient(900px 420px at 15% -10%, rgb(99 102 241 / 0.18), transparent 60%),
+    radial-gradient(800px 380px at 90% -5%, rgb(168 85 247 / 0.14), transparent 60%),
+    #090e1a;
 }
 
 /* soft brand glow behind app pages and the landing hero */

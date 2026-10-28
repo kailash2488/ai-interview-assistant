@@ -7,6 +7,15 @@ import { Card } from '../components/ui/card'
 import { api, type MCQState } from '../lib/api'
 
 const LETTERS = ['A', 'B', 'C', 'D']
+const pendingStarts = new Map<string, Promise<MCQState>>()
+
+function startOnce(sessionId: string) {
+  const existing = pendingStarts.get(sessionId)
+  if (existing) return existing
+  const request = api.startMCQ(sessionId).finally(() => pendingStarts.delete(sessionId))
+  pendingStarts.set(sessionId, request)
+  return request
+}
 
 export function MCQPage() {
   const { sessionId = '' } = useParams()
@@ -16,7 +25,7 @@ export function MCQPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api.getMCQ(sessionId).then(async (s) => setState(s.current || s.status === 'completed' ? s : await api.startMCQ(sessionId)))
+    api.getMCQ(sessionId).then(async (s) => setState(s.current || s.status === 'completed' ? s : await startOnce(sessionId)))
       .catch((e) => setError(e instanceof Error ? e.message : 'Could not start the quiz')).finally(() => setBusy(false))
   }, [sessionId])
 

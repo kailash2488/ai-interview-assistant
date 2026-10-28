@@ -75,10 +75,9 @@ def start_mcq(session_id: str, db: Session = Depends(get_db), user: User = Depen
         return _state(session)
     try:
         llm = get_llm(config_for_user(db, user.id))
-        plan = InterviewPlan.model_validate(session.plan.plan_json)
-        # Generate the complete set up front so "next" is instant and the count cannot drift.
-        for index in range(len(plan.items)):
-            session.questions.append(mcq.generate_question(llm, session, index))
+        # One structured model call builds the complete set. This keeps "next" instant without
+        # burning one provider rate-limit request per question.
+        session.questions.extend(mcq.generate_questions(llm, session))
         session.status = "in_progress"; db.commit()
     except LLMError as exc:
         db.rollback(); raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc

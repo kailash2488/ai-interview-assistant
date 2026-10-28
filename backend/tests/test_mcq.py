@@ -3,6 +3,28 @@ from tests.fakes import FakeLLM
 from tests.test_analysis_api import _ready_session
 
 
+def test_complete_quiz_is_generated_in_one_model_call():
+    from app.models import InterviewPlanRow, InterviewSession, SessionAnalysis
+    from app.services.interview.mcq import generate_questions
+    from tests.fakes import fake_profile, fake_requirements
+    from tests.test_plan import make
+
+    session = InterviewSession(
+        id="batch", title="Batch", target_role="Python Developer", interview_type="mixed",
+        difficulty="medium", question_count=3, practice_mode="mcq",
+    )
+    session.plan = InterviewPlanRow(plan_json=make(3).model_dump(mode="json"))
+    session.analysis = SessionAnalysis(
+        status="ready", profile_json=fake_profile().model_dump(mode="json"),
+        requirements_json=fake_requirements().model_dump(mode="json"), gap_json={},
+    )
+    fake = FakeLLM()
+    questions = generate_questions(fake, session)
+    assert len(questions) == 3
+    assert [question.order_no for question in questions] == [1, 2, 3]
+    assert [call[0] for call in fake.calls] == ["MCQSetDraft"]
+
+
 def ready_mcq(client, monkeypatch, count=3):
     fake = FakeLLM()
     monkeypatch.setattr("app.services.analysis.service.get_llm", lambda *a, **k: fake)
@@ -30,7 +52,7 @@ def test_mcq_end_to_end_hides_answers_until_complete(client, monkeypatch):
     assert state["status"] == "completed" and state["score"] == 67
     assert len(state["results"]) == 3 and state["results"][0]["correct_index"] == 0
     assert state["results"][1]["correct"] is False and state["results"][0]["explanation"]
-    assert [c[0] for c in fake.calls].count("MCQDraft") == 3  # all generated before the first answer
+    assert [c[0] for c in fake.calls].count("MCQSetDraft") == 1  # complete quiz in one provider request
 
 
 def test_mcq_validates_mode_selection_and_answer(client, monkeypatch):

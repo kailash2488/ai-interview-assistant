@@ -3,6 +3,8 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { cn } from '../lib/utils'
 import { Logo } from './Logo'
 import { UserMenu } from './UserMenu'
+import { ThemeToggle } from './ThemeToggle'
+import { SiteFooter } from './SiteFooter'
 
 const NAV = [
   { to: '/', label: 'Interviews', end: true },
@@ -13,7 +15,7 @@ const NAV = [
 /** The signed-in app frame. Pages render in the <Outlet/> (or as children for the home route). */
 export function AppShell({ children }: { children?: ReactNode }) {
   return (
-    <div className="bg-glow min-h-screen">
+    <div className="bg-glow flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-8">
@@ -33,7 +35,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
               ))}
             </nav>
           </div>
-          <UserMenu />
+          <div className="flex items-center gap-1"><ThemeToggle compact /><UserMenu /></div>
         </div>
         <nav aria-label="Main (mobile)" className="flex gap-1 border-t border-slate-100 px-3 py-1.5 sm:hidden">
           {NAV.map((n) => (
@@ -48,7 +50,8 @@ export function AppShell({ children }: { children?: ReactNode }) {
           ))}
         </nav>
       </header>
-      <main className="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 xl:px-10">{children ?? <Outlet />}</main>
+      <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 xl:px-10">{children ?? <Outlet />}</main>
+      <SiteFooter />
     </div>
   )
 }

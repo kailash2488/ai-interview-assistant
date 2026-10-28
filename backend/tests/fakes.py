@@ -1,6 +1,6 @@
 import hashlib
 
-from app.schemas.interview import AnswerAnalysis, MCQDraft
+from app.schemas.interview import AnswerAnalysis, MCQDraft, MCQSetDraft
 from app.schemas.report import AnswerEvaluation, DimScore, Insight, PlanStep, ReportNarrative
 from app.schemas.analysis import CandidateProfile, Employer, JDRequirements, Project, SkillItem
 
@@ -84,14 +84,18 @@ class FakeLLM:
             if isinstance(item, Exception):
                 raise item
             return item
-        if schema is MCQDraft:
+        if schema in (MCQDraft, MCQSetDraft):
             self.calls.append((schema.__name__, system, user))
-            return MCQDraft(
+            draft = MCQDraft(
                 question="Which option best demonstrates the topic in practice?",
                 options=["The correct practical approach", "An unrelated shortcut", "Ignoring the requirement", "A clearly unsafe approach"],
                 correct_index=0,
                 explanation="The first option directly applies the topic while the other choices miss the stated requirement.",
             )
+            if schema is MCQDraft:
+                return draft
+            count = sum(1 for line in user.splitlines() if line.split(".", 1)[0].isdigit())
+            return MCQSetDraft(questions=[draft.model_copy() for _ in range(count)])
         self.calls.append((schema.__name__, system, user))
         return fake_profile() if schema is CandidateProfile else fake_requirements()
 

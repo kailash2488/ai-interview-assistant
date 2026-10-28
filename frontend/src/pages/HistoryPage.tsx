@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { ArrowRight, Award, BarChart3, CalendarDays, Target, TrendingDown, TrendingUp } from 'lucide-react'
 import { ScoreBars } from '../components/ScoreBars'
 import { Button } from '../components/ui/button'
 import { PageHeader } from '../components/ui/page'
@@ -86,10 +87,15 @@ export function HistoryPage() {
   if (!items && !error) return <p className="text-slate-500">Loading…</p>
   const list = items ?? []
   const shown = a && b ? comparison : null
+  const latest = list.at(-1)
+  const first = list[0]
+  const best = list.length ? Math.max(...list.map((item) => item.overall_score)) : 0
+  const average = list.length ? Math.round(list.reduce((sum, item) => sum + item.overall_score, 0) / list.length) : 0
+  const improvement = latest && first && list.length > 1 ? latest.overall_score - first.overall_score : null
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Your progress" subtitle="Interviews with a finished report, oldest first. Compare two attempts to see what improved." />
+      <PageHeader title="Your progress" subtitle="Turn every completed interview into a clearer next step." actions={<Link to="/new"><Button>New practice <ArrowRight className="size-4" /></Button></Link>} />
       {error && (
         <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
           {error}
@@ -107,12 +113,27 @@ export function HistoryPage() {
 
       {list.length > 0 && (
         <>
-          <Card>
+          <section aria-label="Performance summary" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { label: 'Latest score', value: `${latest!.overall_score}`, note: latest!.title, icon: Target, tone: 'from-brand-500 to-indigo-600' },
+              { label: 'Personal best', value: `${best}`, note: 'Highest report score', icon: Award, tone: 'from-amber-400 to-orange-500' },
+              { label: 'Average score', value: `${average}`, note: `Across ${list.length} attempt${list.length === 1 ? '' : 's'}`, icon: BarChart3, tone: 'from-cyan-500 to-blue-600' },
+              { label: 'Overall growth', value: improvement === null ? '—' : `${improvement >= 0 ? '+' : ''}${improvement}`, note: improvement === null ? 'Complete another attempt' : 'First report to latest', icon: improvement !== null && improvement < 0 ? TrendingDown : TrendingUp, tone: improvement !== null && improvement < 0 ? 'from-rose-500 to-red-600' : 'from-emerald-500 to-teal-600' },
+            ].map(({ label, value, note, icon: Icon, tone }) => <Card key={label} className="relative overflow-hidden p-5"><div aria-hidden className={`absolute -right-8 -top-8 size-24 rounded-full bg-gradient-to-br ${tone} opacity-10`} /><div className="flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[.14em] text-slate-500">{label}</p><p className="mt-2 text-3xl font-semibold tabular-nums text-slate-900">{value}<span className="text-base font-medium text-slate-400">{value === '—' ? '' : '/100'}</span></p></div><span className={`flex size-10 items-center justify-center rounded-xl bg-gradient-to-br text-white ${tone}`}><Icon className="size-5" /></span></div><p className="mt-3 truncate text-xs text-slate-500" title={note}>{note}</p></Card>)}
+          </section>
+
+          <Card className="overflow-hidden border-0 bg-gradient-to-r from-slate-950 via-indigo-950 to-brand-800 text-white shadow-lift">
+            <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center"><div><p className="text-xs font-semibold uppercase tracking-[.16em] text-indigo-200">Performance insight</p><h2 className="mt-2 text-xl font-semibold">{improvement === null ? 'Your baseline is ready' : improvement > 0 ? `You have improved ${improvement} points` : improvement === 0 ? 'Your score is holding steady' : 'Use the next attempt to rebuild momentum'}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-indigo-100">{improvement === null ? 'Complete one more interview for a meaningful side-by-side comparison.' : improvement >= 0 ? 'Compare attempts below to identify which rubric dimensions and topics created the change.' : 'A lower score is useful evidence—not a setback. Compare topics, practise the weakest area, and try again.'}</p></div><Link to="/new" className="shrink-0 rounded-xl bg-white px-4 py-2.5 text-center text-sm font-semibold text-brand-700 shadow-sm hover:bg-indigo-50">Start focused practice</Link></div>
+          </Card>
+
+          <Card className="p-5 sm:p-6">
             <ScoreBars
               title="Overall score by attempt"
               bars={list.map((i) => ({ label: i.title, value: i.overall_score, detail: `${formatDate(i.created_at)} · ${i.target_role}` }))}
             />
           </Card>
+
+          <Card className="space-y-4"><div className="flex items-center justify-between"><div><h2 className="text-base font-semibold">Recent reports</h2><p className="mt-1 text-sm text-slate-500">Open a report to review feedback and stronger sample answers.</p></div><CalendarDays className="size-5 text-brand-600" /></div><div className="divide-y divide-slate-100">{[...list].reverse().slice(0, 5).map((item) => <Link key={item.session_id} to={`/sessions/${item.session_id}/report`} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0 hover:text-brand-700"><span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 font-semibold tabular-nums text-brand-700">{item.overall_score}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-slate-800">{item.title}</span><span className="block truncate text-xs text-slate-500">{item.target_role} · {formatDate(item.created_at)} · {item.verdict}</span></span><ArrowRight className="size-4 shrink-0 text-slate-400" /></Link>)}</div></Card>
 
           <Card className="space-y-4">
             <h2 className="text-base font-semibold">Compare two attempts</h2>

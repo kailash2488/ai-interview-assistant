@@ -78,6 +78,10 @@ class MCQDraft(BaseModel):
     explanation: str = Field(min_length=10, max_length=800)
 
 
+class MCQSetDraft(BaseModel):
+    questions: list[MCQDraft] = Field(min_length=1, max_length=30)
+
+
 class MCQQuestionOut(BaseModel):
     question_id: str
     order_no: int

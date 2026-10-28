@@ -74,7 +74,13 @@ export function Upload() {
   async function reuse() {
     if (!reuseId) return
     setStarting(true); setError(null)
-    try { await api.reuseDocument(sessionId, reuseId); await refresh(); setReuseId('') }
+    try {
+      const reused = await api.reuseDocument(sessionId, reuseId)
+      // Trust the mutation response immediately; a follow-up list request only reconciles server state.
+      setDocs((current) => [...current.filter((document) => document.kind !== reused.kind), reused])
+      setReuseId('')
+      await refresh()
+    }
     catch (e) { setError(e instanceof Error ? e.message : 'Could not reuse document') }
     finally { setStarting(false) }
   }

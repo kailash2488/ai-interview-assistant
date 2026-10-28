@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import '@fontsource-variable/inter'
 import './index.css'
 import App from './App.tsx'
+import { applyTheme, storedTheme } from './lib/theme.ts'
+
+applyTheme(storedTheme())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

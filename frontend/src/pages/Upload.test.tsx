@@ -79,6 +79,27 @@ describe('Upload page', () => {
     })
   })
 
+  it('accepts a reused resume and enables analysis when the job description is ready', async () => {
+    let documents = [doc({ id: 'jd1', kind: 'jd', filename: 'job.txt' })]
+    const reused = doc({ id: 'resume2', kind: 'resume', filename: 'previous.pdf' })
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      const ok = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })
+      if (url.endsWith('/reuse-options')) return ok([{ id: 'old-resume', filename: 'previous.pdf', session_title: 'Earlier attempt', kind: 'resume' }])
+      if (url.endsWith('/documents/reuse') && init?.method === 'POST') {
+        documents = [...documents, reused]
+        return ok(reused, 201)
+      }
+      if (url.endsWith('/sessions/s1/documents')) return ok(documents)
+      if (url.endsWith('/sessions/s1')) return ok(session)
+      return ok({}, 404)
+    }))
+    renderPage()
+    await userEvent.selectOptions(await screen.findByLabelText('Previous document'), 'old-resume')
+    await userEvent.click(screen.getByRole('button', { name: 'Use selected document' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Analyse documents' })).toBeEnabled())
+    expect(screen.getByText('previous.pdf')).toBeInTheDocument()
+  })
+
   it('shows an error page for an unknown session', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ detail: 'Session not found' }), { status: 404 })))
     renderPage()

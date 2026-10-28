@@ -8,6 +8,10 @@ os.environ["AIA_UPLOAD_DIR"] = str(_tmp / "uploads")
 os.environ["AIA_QDRANT_PATH"] = ":memory:"
 os.environ["AIA_SECRET_KEY_PATH"] = str(_tmp / "secret.key")
 os.environ["AIA_RUNTIME_SETTINGS_PATH"] = str(_tmp / "llm_settings.json")
+# Developer .env choices must never change test behavior.
+os.environ["AIA_LLM_PROVIDER"] = "ollama"
+os.environ["AIA_ENABLE_OLLAMA"] = "true"
+os.environ.pop("AIA_GEMINI_API_KEY", None)
 
 import fitz  # noqa: E402
 import pytest  # noqa: E402

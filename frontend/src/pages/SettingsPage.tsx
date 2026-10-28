@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Bot, BrainCircuit, Check, ChevronRight, Cloud, ExternalLink, HardDrive, KeyRound, LockKeyhole, ServerCog, ShieldCheck, Sparkles, Trash2, Zap } from 'lucide-react'
 import { AccountCard } from '../components/AccountCard'
+import { ThemeToggle } from '../components/ThemeToggle'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Field, Input, Select } from '../components/ui/field'
@@ -92,6 +93,7 @@ export function SettingsPage() {
       <div aria-hidden className="absolute -right-20 -top-24 size-80 rounded-full bg-fuchsia-500/20 blur-3xl" />
       <div className="relative max-w-3xl"><p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[.18em] text-indigo-200"><ServerCog className="size-4" /> AI workspace</p><h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Settings that put you in control</h1><p className="mt-3 text-sm leading-6 text-indigo-100 sm:text-base">Choose where interviews run, manage credentials safely, and understand exactly where your data goes.</p></div>
     </section>
+    <Card className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h2 className="font-semibold">Appearance</h2><p className="mt-1 text-sm text-slate-500">Choose light or dark mode, or follow your device automatically.</p></div><ThemeToggle /></Card>
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-8">
         <section aria-labelledby="provider-title" className="space-y-5"><div><p className="text-xs font-semibold uppercase tracking-[.16em] text-brand-600">Step 1</p><h2 id="provider-title" className="mt-1 text-2xl font-semibold">Choose your AI provider</h2><p className="mt-1 text-sm text-slate-500">Switch at any time. Existing reports do not change.</p></div>

@@ -129,7 +129,10 @@ class GeminiClient:
         if code == 404:
             raise LLMUnavailable(f"Gemini model '{self.model}' was not found. Pick another model on the Settings page.")
         if code == 429:
-            raise LLMUnavailable("Gemini free-tier rate limit reached. Wait a minute and try again.")
+            raise LLMUnavailable(
+                f"Gemini rate limit or project quota was reached for {self.model}. Wait for the quota window to reset, "
+                "choose Flash-Lite, or use a key from a project with available quota. A new key in the same Google project shares the same quota."
+            )
         if code == 503:
             raise LLMUnavailable(
                 f"Google says {self.model} is overloaded right now. Try again in a minute, "
