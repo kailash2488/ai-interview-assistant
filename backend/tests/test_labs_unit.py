@@ -32,18 +32,32 @@ def test_runner_receives_fixed_isolation_policy(monkeypatch):
                               request=httpx.Request("POST", url))
 
     monkeypatch.setattr(settings, "code_runner_url", "https://runner.example.com")
-    monkeypatch.setattr(settings, "code_runner_token", SecretStr("runner-secret"))
+    monkeypatch.setattr(settings, "code_runner_token", SecretStr("r" * 32))
     monkeypatch.setattr(httpx, "post", post)
     labs._runs.clear()
     result = labs.run_code(labs.CodeRunIn(language="python", code="print(1)"), User(id="u"))
     assert result.stdout == "ok"
     assert captured["json"] | {"network": False, "read_only": True} == captured["json"]
     assert captured["json"]["memory_mb"] == 128 and captured["json"]["pids"] == 32
-    assert captured["headers"]["Authorization"] == "Bearer runner-secret"
+    assert captured["headers"]["Authorization"] == f"Bearer {'r' * 32}"
+
+
+def test_runner_health_is_authenticated(monkeypatch):
+    captured = {}
+
+    def get(url, **kwargs):
+        captured.update(url=url, **kwargs)
+        return httpx.Response(200, json={"ready": True, "detail": "ready"}, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(settings, "code_runner_url", "https://runner.example.com")
+    monkeypatch.setattr(settings, "code_runner_token", SecretStr("r" * 32))
+    monkeypatch.setattr(httpx, "get", get)
+    assert labs._runner_health() == (True, "ready")
+    assert captured["headers"]["Authorization"] == f"Bearer {'r' * 32}"
 
 
 @pytest.mark.parametrize("url", ["http://public.example.com", "ftp://runner", "https://user:pass@runner.example.com"])
 def test_runner_rejects_insecure_or_credentialed_urls(monkeypatch, url):
     monkeypatch.setattr(settings, "code_runner_url", url)
-    monkeypatch.setattr(settings, "code_runner_token", SecretStr("secret"))
+    monkeypatch.setattr(settings, "code_runner_token", SecretStr("s" * 32))
     assert labs._runner_configured() is False

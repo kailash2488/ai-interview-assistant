@@ -342,7 +342,7 @@ export interface DataSummary {
   reports: number
   upload_bytes: number
 }
-export interface CodingStatus { enabled: boolean; languages: string[]; max_code_chars: number; timeout_seconds: number }
+export interface CodingStatus { enabled: boolean; languages: string[]; max_code_chars: number; timeout_seconds: number; detail: string }
 export interface CodeResult { exit_code: number | null; stdout: string; stderr: string; timed_out: boolean }
 export interface BankQuestion { question: string; category: string; difficulty: 'easy' | 'medium' | 'hard' }
 export interface QuestionBank { id: string; name: string; company: string; notes: string; questions_json: BankQuestion[]; created_at: string; updated_at: string }

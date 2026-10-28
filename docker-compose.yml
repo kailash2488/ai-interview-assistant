@@ -24,6 +24,8 @@ services:
       AIA_OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       AIA_ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}        # set to false once your accounts exist
       AIA_COOKIE_SECURE: ${COOKIE_SECURE:-false}     # set to true when serving over HTTPS
+      AIA_CODE_RUNNER_URL: ${CODE_RUNNER_URL:-}
+      AIA_CODE_RUNNER_TOKEN: ${CODE_RUNNER_TOKEN:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -45,6 +47,35 @@ services:
     profiles: ["local-llm"]
     volumes:
       - ollama-models:/root/.ollama
+    restart: unless-stopped
+
+  python-sandbox:
+    profiles: ["code-runner"]
+    build: ./runner/sandbox
+    image: aia-python-sandbox:3.12
+    network_mode: none
+    entrypoint: ["true"]
+    restart: "no"
+
+  code-runner:
+    profiles: ["code-runner"]
+    build: ./runner
+    environment:
+      RUNNER_TOKEN: ${CODE_RUNNER_TOKEN:-}
+      RUNNER_RUNTIME: ${CODE_RUNNER_RUNTIME:-runsc}
+      RUNNER_IMAGE: aia-python-sandbox:3.12
+      RUNNER_CONCURRENCY: ${CODE_RUNNER_CONCURRENCY:-2}
+    depends_on:
+      python-sandbox:
+        condition: service_completed_successfully
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=8m
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    expose: ["8081"]
     restart: unless-stopped
 
 volumes:

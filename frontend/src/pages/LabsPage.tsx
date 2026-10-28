@@ -311,16 +311,30 @@ export function LabsPage() {
           </div>
           <Badge tone={coding?.enabled ? "success" : "warning"}>
             {coding?.enabled
-              ? "Isolated runner ready"
-              : "Python runner not configured"}
+              ? "Isolated Python runner ready"
+              : "Python runner unavailable"}
           </Badge>
         </div>
         <p className="flex gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
-          <ShieldCheck className="size-5 shrink-0 text-emerald-600" /> Submitted
-          code is never evaluated by the application server. Execution requires
-          a separate runner configured with no network and strict resource
-          limits.
+          <ShieldCheck className="size-5 shrink-0 text-emerald-600" />
+          <span>{coding?.detail ?? "Checking isolated runner readiness…"}</span>
         </p>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            "Fresh gVisor sandbox",
+            "Network disabled",
+            "Non-root + read-only",
+            "CPU, memory & time limits",
+          ].map((item) => (
+            <div
+              key={item}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600"
+            >
+              <ShieldCheck className="mr-1.5 inline size-4 text-emerald-600" />
+              {item}
+            </div>
+          ))}
+        </div>
         <div className="grid gap-4 lg:grid-cols-[180px_1fr]">
           <Field label="Language">
             <Select
@@ -328,7 +342,6 @@ export function LabsPage() {
               onChange={(e) => setLanguage(e.target.value)}
             >
               <option value="python">Python</option>
-              <option value="javascript">JavaScript</option>
             </Select>
           </Field>
           <Field

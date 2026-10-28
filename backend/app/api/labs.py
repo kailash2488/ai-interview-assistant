@@ -35,13 +35,14 @@ IMAGE_TYPES = {
 
 class CodingStatus(BaseModel):
     enabled: bool
-    languages: list[str] = ["python", "javascript"]
+    languages: list[str] = ["python"]
     max_code_chars: int
     timeout_seconds: float
+    detail: str
 
 
 class CodeRunIn(BaseModel):
-    language: Literal["python", "javascript"]
+    language: Literal["python"]
     code: str = Field(min_length=1)
     stdin: str = Field(default="", max_length=4_000)
 
@@ -123,6 +124,8 @@ def _owned(model, row_id: str, user: User, db: Session):
 def _runner_configured() -> bool:
     if not settings.code_runner_url or not settings.code_runner_token:
         return False
+    if len(settings.code_runner_token.get_secret_value()) < 32:
+        return False
     parsed = urlparse(settings.code_runner_url)
     local_http = parsed.scheme == "http" and parsed.hostname is not None and (
         parsed.hostname in {"127.0.0.1", "localhost", "runner"} or "." not in parsed.hostname
@@ -130,12 +133,32 @@ def _runner_configured() -> bool:
     return parsed.username is None and parsed.password is None and (parsed.scheme == "https" or local_http)
 
 
+def _runner_health() -> tuple[bool, str]:
+    if not _runner_configured():
+        return False, "Python execution is disabled until an administrator configures the isolated runner."
+    try:
+        response = httpx.get(
+            settings.code_runner_url.rstrip("/") + "/health",
+            headers={"Authorization": f"Bearer {settings.code_runner_token.get_secret_value()}"},
+            timeout=2,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if payload.get("ready") is True:
+            return True, str(payload.get("detail") or "The isolated Python runner is ready.")[:300]
+    except (httpx.HTTPError, ValueError, TypeError):
+        pass
+    return False, "The runner is configured but not ready. Check Docker, gVisor and the sandbox image."
+
+
 @router.get("/coding", response_model=CodingStatus)
 def coding_status(_user: User = Depends(current_user)):
+    enabled, detail = _runner_health()
     return CodingStatus(
-        enabled=_runner_configured(),
+        enabled=enabled,
         max_code_chars=settings.code_max_chars,
         timeout_seconds=settings.code_runner_timeout_seconds,
+        detail=detail,
     )
 
 
@@ -161,6 +184,8 @@ def run_code(payload: CodeRunIn, user: User = Depends(current_user)):
                   "network": False, "read_only": True, "memory_mb": 128, "cpu_seconds": 2, "pids": 32},
             timeout=settings.code_runner_timeout_seconds + 2,
         )
+        if response.status_code == 429:
+            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "The isolated runner is busy. Try again shortly.")
         if response.status_code != 200:
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, "The isolated runner rejected the request")
         result = CodeRunOut.model_validate(response.json())
