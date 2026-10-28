@@ -32,3 +32,15 @@ def test_upgrade_is_idempotent_and_does_not_create_extra_backup(tmp_path):
     migrate.upgrade(engine)
 
     assert len(list((tmp_path / "schema-backups").glob("*.db"))) == 1
+
+
+def test_existing_database_is_backed_up_before_new_tables(tmp_path):
+    database = tmp_path / "app.db"
+    engine = create_engine(f"sqlite:///{database}")
+    with engine.begin() as connection:
+        connection.execute(text("CREATE TABLE users (id VARCHAR(32) PRIMARY KEY)"))
+        connection.execute(text("INSERT INTO users (id) VALUES ('existing-user')"))
+    migrate.backup_before_new_tables(engine, {"users", "question_banks"})
+    backup = next((tmp_path / "schema-backups").glob("*.db"))
+    with create_engine(f"sqlite:///{backup}").connect() as connection:
+        assert connection.execute(text("SELECT id FROM users")).scalar_one() == "existing-user"

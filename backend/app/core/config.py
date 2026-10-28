@@ -15,6 +15,13 @@ class Settings(BaseSettings):
     max_upload_mb: int = 10
     max_other_documents: int = 10
 
+    # Phase 7 labs. Code is sent only to a separately isolated runner; it is never executed by this API process.
+    code_runner_url: str = ""
+    code_runner_token: SecretStr | None = None
+    code_runner_timeout_seconds: float = 8.0
+    code_max_chars: int = 20_000
+    system_design_max_mb: int = 5
+
     # Keep local models available for source-based development, but allow deployments to disable them.
     enable_ollama: bool = True
     llm_provider: Literal["ollama", "gemini", "openai", "anthropic", "azure"] = "ollama"

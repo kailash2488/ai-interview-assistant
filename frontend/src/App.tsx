@@ -9,6 +9,7 @@ import { HistoryPage } from './pages/HistoryPage'
 import { Home } from './pages/Home'
 import { Interview } from './pages/Interview'
 import { Landing } from './pages/Landing'
+import { LabsPage } from './pages/LabsPage'
 import { MCQPage } from './pages/MCQPage'
 import { PlanPage } from './pages/PlanPage'
 import { ReportPage } from './pages/ReportPage'
@@ -70,6 +71,7 @@ export default function App() {
               <Route path="sessions/:sessionId/mcq" element={<MCQPage />} />
               <Route path="sessions/:sessionId/report" element={<ReportPage />} />
               <Route path="history" element={<HistoryPage />} />
+              <Route path="labs" element={<LabsPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="*" element={<p className="text-slate-500">Page not found.</p>} />
             </Route>

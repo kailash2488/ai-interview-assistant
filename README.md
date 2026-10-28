@@ -360,6 +360,11 @@ Server settings come from environment variables prefixed `AIA_`, or from `backen
 | `AIA_PIPER_VOICE` | `en_US-lessac-medium` | Text-to-speech voice for voice mode |
 | `AIA_MAX_UPLOAD_MB` | `10` | Upload size limit |
 | `AIA_MAX_OTHER_DOCUMENTS` | `10` | Extra documents per interview |
+| `AIA_SYSTEM_DESIGN_MAX_MB` | `5` | Maximum PNG/JPEG/WebP architecture diagram size |
+| `AIA_CODE_RUNNER_URL` | none | Optional separately isolated runner URL; remote URLs must use HTTPS |
+| `AIA_CODE_RUNNER_TOKEN` | none | Shared secret used only between the API and isolated runner |
+| `AIA_CODE_RUNNER_TIMEOUT_SECONDS` | `8` | Maximum wall-clock request time for a code execution |
+| `AIA_CODE_MAX_CHARS` | `20000` | Maximum source-code submission size |
 | `AIA_DATABASE_URL` | `sqlite:///backend/data/app.db` | Database location |
 | `AIA_UPLOAD_DIR` | `backend/uploads` | Uploaded files |
 | `AIA_QDRANT_PATH` | `backend/data/qdrant` | Document search index |
@@ -476,7 +481,7 @@ Limitations:
 - Scanned PDFs are not supported (no OCR).
 - Long jobs run as background tasks inside the API process. If you restart the backend during an analysis or report, start it again from the app. Run a single backend process, because login throttling and background jobs live in memory.
 
-Roadmap: coding and system-design interview rounds, company-specific question banks from your own notes, and more languages. See [docs/SOP.pdf](docs/SOP.pdf).
+Phase 7 is available from **Practice lab**: private company-specific question banks, a system-design portfolio with validated diagram uploads and AI reasoning review, and a coding workspace that activates only when a separately isolated runner is configured. The application server never executes submitted code. See [the runner security contract](docs/CODE_RUNNER_SECURITY.md) before enabling it. More languages remain a future enhancement. See [docs/SOP.pdf](docs/SOP.pdf).
 
 ## Licence
 

@@ -26,6 +26,7 @@ def init_db() -> None:
 
     from app.core import migrate
 
+    migrate.backup_before_new_tables(engine, set(Base.metadata.tables))
     Base.metadata.create_all(engine)
     migrate.upgrade(engine)
 

@@ -9,6 +9,7 @@ import { SiteFooter } from './SiteFooter'
 const NAV = [
   { to: '/', label: 'Interviews', end: true },
   { to: '/history', label: 'Progress', end: false },
+  { to: '/labs', label: 'Practice lab', end: false },
   { to: '/settings', label: 'Settings', end: false },
 ]
 

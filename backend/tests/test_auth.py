@@ -234,6 +234,8 @@ PROTECTED = [
     ("POST", "/sessions/x/report"), ("GET", "/sessions/x/report"), ("GET", "/sessions/x/report/pdf"),
     ("GET", "/history"), ("GET", "/history/compare?a=1&b=2"), ("GET", "/data"), ("DELETE", "/data"),
     ("GET", "/settings/llm"), ("PUT", "/settings/llm"), ("DELETE", "/settings/llm/key"), ("POST", "/settings/llm/test"),
+    ("GET", "/labs/coding"), ("POST", "/labs/coding/run"), ("GET", "/labs/question-banks"),
+    ("POST", "/labs/question-banks"), ("GET", "/labs/system-designs"), ("POST", "/labs/system-designs"),
     ("GET", "/auth/me"), ("POST", "/auth/change-password"), ("DELETE", "/auth/me"),
 ]
 

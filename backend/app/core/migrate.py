@@ -57,7 +57,7 @@ def _backup_sqlite(engine: Engine) -> Path | None:
         return None
     backup_dir = source.parent / "schema-backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     destination = backup_dir / f"{source.stem}-before-upgrade-{stamp}{source.suffix or '.db'}"
     raw = engine.raw_connection()
     try:
@@ -71,6 +71,13 @@ def _backup_sqlite(engine: Engine) -> Path | None:
         old.unlink(missing_ok=True)
     log.warning("Created pre-upgrade database backup at %s", destination)
     return destination
+
+
+def backup_before_new_tables(engine: Engine, expected_tables: set[str]) -> None:
+    """`create_all` also changes existing databases when a release adds a table."""
+    existing = set(inspect(engine).get_table_names())
+    if existing and expected_tables - existing:
+        _backup_sqlite(engine)
 
 
 def upgrade(engine: Engine) -> None:

@@ -35,6 +35,9 @@ def _summary(db: Session, user: User) -> DataSummary:
         root = settings.upload_dir / sid
         if root.exists():
             size += sum(f.stat().st_size for f in root.rglob("*") if f.is_file())
+    design_root = settings.upload_dir / "system-designs" / user.id
+    if design_root.exists():
+        size += sum(f.stat().st_size for f in design_root.rglob("*") if f.is_file())
     return DataSummary(
         sessions=len(ids),
         documents=count(Document, Document.session_id.in_(mine)),

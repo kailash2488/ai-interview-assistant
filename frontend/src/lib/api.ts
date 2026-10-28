@@ -342,6 +342,12 @@ export interface DataSummary {
   reports: number
   upload_bytes: number
 }
+export interface CodingStatus { enabled: boolean; languages: string[]; max_code_chars: number; timeout_seconds: number }
+export interface CodeResult { exit_code: number | null; stdout: string; stderr: string; timed_out: boolean }
+export interface BankQuestion { question: string; category: string; difficulty: 'easy' | 'medium' | 'hard' }
+export interface QuestionBank { id: string; name: string; company: string; notes: string; questions_json: BankQuestion[]; created_at: string; updated_at: string }
+export interface DesignFeedback { strengths: string[]; risks: string[]; follow_up_questions: string[]; summary: string }
+export interface SystemDesign { id: string; title: string; prompt: string; notes: string; filename: string; media_type: string; feedback_json: DesignFeedback | null; created_at: string }
 
 export const speakUrl = () => `${BASE}/voice/speak`
 
@@ -468,6 +474,23 @@ export const api = {
   getDataSummary: () => request<DataSummary>('/data'),
   deleteAllData: () =>
     request<DataSummary>('/data', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'DELETE ALL' }) }),
+  codingStatus: () => request<CodingStatus>('/labs/coding'),
+  runCode: (language: string, code: string, stdin = '') => request<CodeResult>('/labs/coding/run', json({ language, code, stdin })),
+  listQuestionBanks: () => request<QuestionBank[]>('/labs/question-banks'),
+  createQuestionBank: (body: { name: string; company: string; notes: string }) => request<QuestionBank>('/labs/question-banks', json(body)),
+  generateQuestionBank: (id: string, count: number) => request<QuestionBank>(`/labs/question-banks/${id}/generate`, json({ count })),
+  deleteQuestionBank: (id: string) => request<void>(`/labs/question-banks/${id}`, { method: 'DELETE' }),
+  listSystemDesigns: () => request<SystemDesign[]>('/labs/system-designs'),
+  createSystemDesign: (body: { title: string; prompt: string; notes: string; diagram: File }) => {
+    const form = new FormData()
+    form.append('title', body.title)
+    form.append('prompt', body.prompt)
+    form.append('notes', body.notes)
+    form.append('diagram', body.diagram)
+    return request<SystemDesign>('/labs/system-designs', { method: 'POST', body: form })
+  },
+  deleteSystemDesign: (id: string) => request<void>(`/labs/system-designs/${id}`, { method: 'DELETE' }),
+  reviewSystemDesign: (id: string) => request<SystemDesign>(`/labs/system-designs/${id}/review`, { method: 'POST' }),
   createPlan: (sid: string) => request<Plan>(`/sessions/${sid}/plan`, { method: 'POST' }),
   getPlan: async (sid: string): Promise<Plan | null> => {
     try {
@@ -481,3 +504,5 @@ export const api = {
   deleteDocument: (sid: string, did: string) =>
     request<void>(`/sessions/${sid}/documents/${did}`, { method: 'DELETE' }),
 }
+
+export const systemDesignDiagramUrl = (id: string) => `${BASE}/labs/system-designs/${id}/diagram`
