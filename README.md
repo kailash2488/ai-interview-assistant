@@ -481,7 +481,7 @@ Limitations:
 - Scanned PDFs are not supported (no OCR).
 - Long jobs run as background tasks inside the API process. If you restart the backend during an analysis or report, start it again from the app. Run a single backend process, because login throttling and background jobs live in memory.
 
-Phase 7 is available from **Practice lab**: private company-specific question banks, a system-design portfolio with validated diagram uploads and AI reasoning review, and a coding workspace that activates only when a separately isolated runner is configured. The application server never executes submitted code. See [the runner security contract](docs/CODE_RUNNER_SECURITY.md) before enabling it. More languages remain a future enhancement. See [docs/SOP.pdf](docs/SOP.pdf).
+Phase 7 is available from **Practice lab**: private company-specific question banks, a system-design portfolio with validated diagram uploads and AI reasoning review, and an out-of-the-box JavaScript browser sandbox. JavaScript runs in a disposable Web Worker and never reaches the server. Python and other server-side runtimes activate only when a separately isolated runner is configured; the application server never executes submitted code. See [the runner security contract](docs/CODE_RUNNER_SECURITY.md) before enabling it. See [docs/SOP.pdf](docs/SOP.pdf).
 
 ## Licence
 

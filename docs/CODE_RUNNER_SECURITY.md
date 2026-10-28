@@ -2,6 +2,8 @@
 
 The API deliberately does not execute candidate code. Configure `AIA_CODE_RUNNER_URL` and
 `AIA_CODE_RUNNER_TOKEN` only when a separately administered runner implements `POST /run`.
+The JavaScript browser sandbox works without this service; this contract is for Python and other
+server-side language runtimes.
 
 The request contains `language`, `code`, `stdin` and mandatory policy values: `network=false`,
 `read_only=true`, `memory_mb=128`, `cpu_seconds=2`, `pids=32`, and `timeout_seconds`.
