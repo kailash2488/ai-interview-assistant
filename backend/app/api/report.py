@@ -27,6 +27,8 @@ def _out(row: Report) -> ReportOut:
 def generate_report(session_id: str, background: BackgroundTasks, db: Session = Depends(get_db), user: User = Depends(current_user)):
     """Starts report generation. Reports are never created automatically: the user asks for them."""
     session = get_session_or_404(session_id, db, user)
+    if session.practice_mode == "mcq":
+        raise HTTPException(status.HTTP_409_CONFLICT, "MCQ scores and explanations are available on the quiz results page")
     if session.plan is None or session.analysis is None or not session.questions:
         raise HTTPException(status.HTTP_409_CONFLICT, "Take the interview first")
     if session.status not in ("completed", "reported"):

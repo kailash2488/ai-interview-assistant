@@ -13,6 +13,7 @@ KEY = "AIzaSyTESTKEY1234567890abcdef"
 
 @pytest.fixture(autouse=True)
 def server_defaults(monkeypatch):
+    monkeypatch.setattr(settings, "enable_ollama", True)
     monkeypatch.setattr(settings, "llm_provider", "ollama")
     monkeypatch.setattr(settings, "gemini_api_key", None)
     monkeypatch.setattr(settings, "gemini_model", "gemini-3.5-flash-lite")
@@ -42,6 +43,16 @@ def test_validation(client):
     assert save(client, provider="claude").status_code == 422
     r = save(client, provider="gemini", gemini_api_key=KEY, gemini_model="gemini-2.5-flash")
     assert r.status_code == 422 and "Unknown model" in r.text
+
+
+def test_deployment_can_disable_ollama(client, monkeypatch):
+    monkeypatch.setattr(settings, "enable_ollama", False)
+    body = client.get("/settings/llm").json()
+    assert body["ollama_enabled"] is False
+    response = save(client, provider="ollama")
+    assert response.status_code == 422 and "disabled" in response.text
+    result = client.post("/settings/llm/test").json()
+    assert result["ok"] is False and "Choose Gemini" in result["message"]
 
 
 def test_key_is_never_returned_and_is_encrypted_at_rest(client):

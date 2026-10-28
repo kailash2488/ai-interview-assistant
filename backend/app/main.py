@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analysis, auth, dashboard, data, documents, history, interview, llm_settings, practice, report, sessions, voice
+from app.api import analysis, auth, dashboard, data, documents, history, interview, llm_settings, mcq, practice, report, sessions, voice
 from app.core.config import settings
 from app.core.db import init_db
 
@@ -27,6 +27,7 @@ app.include_router(sessions.router)
 app.include_router(documents.router)
 app.include_router(analysis.router)
 app.include_router(interview.router)
+app.include_router(mcq.router)
 app.include_router(llm_settings.router)
 app.include_router(report.router)
 app.include_router(history.router)

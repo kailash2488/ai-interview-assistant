@@ -12,6 +12,7 @@ export function Setup() {
   const [title, setTitle] = useState('')
   const [role, setRole] = useState('')
   const [type, setType] = useState<InterviewType>('mixed')
+  const [mode, setMode] = useState<'live' | 'mcq'>('live')
   const [difficulty, setDifficulty] = useState<Difficulty>('medium')
   const [count, setCount] = useState('10')
   const [busy, setBusy] = useState(false)
@@ -28,6 +29,7 @@ export function Setup() {
         interview_type: type,
         difficulty,
         question_count: Number(count),
+        practice_mode: mode,
       })
       navigate(`/sessions/${s.id}/upload`)
     } catch (err) {
@@ -50,6 +52,15 @@ export function Setup() {
             </Field>
           </div>
           <Segmented
+            label="Practice format"
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: 'live', label: 'Live interview', hint: 'Open answers with adaptive follow-ups' },
+              { value: 'mcq', label: 'MCQ quiz', hint: 'Four choices with instant results at the end' },
+            ]}
+          />
+          <Segmented
             label="Interview type"
             value={type}
             onChange={setType}
@@ -70,11 +81,11 @@ export function Setup() {
             ]}
           />
           <Segmented
-            label="Number of topics"
+            label={mode === 'mcq' ? 'Number of questions' : 'Number of topics'}
             value={count}
             onChange={setCount}
             options={[
-              { value: '8', label: '8', hint: 'about 15 min' },
+              { value: '8', label: '8', hint: mode === 'mcq' ? 'about 8 min' : 'about 15 min' },
               { value: '10', label: '10', hint: 'about 20 min' },
               { value: '12', label: '12', hint: 'about 25 min' },
               { value: '15', label: '15', hint: 'about 35 min' },

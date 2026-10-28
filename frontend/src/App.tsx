@@ -9,6 +9,7 @@ import { HistoryPage } from './pages/HistoryPage'
 import { Home } from './pages/Home'
 import { Interview } from './pages/Interview'
 import { Landing } from './pages/Landing'
+import { MCQPage } from './pages/MCQPage'
 import { PlanPage } from './pages/PlanPage'
 import { ReportPage } from './pages/ReportPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -66,6 +67,7 @@ export default function App() {
               <Route path="sessions/:sessionId/analysis" element={<Analysis />} />
               <Route path="sessions/:sessionId/plan" element={<PlanPage />} />
               <Route path="sessions/:sessionId/interview" element={<Interview />} />
+              <Route path="sessions/:sessionId/mcq" element={<MCQPage />} />
               <Route path="sessions/:sessionId/report" element={<ReportPage />} />
               <Route path="history" element={<HistoryPage />} />
               <Route path="settings" element={<SettingsPage />} />

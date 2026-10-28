@@ -41,11 +41,12 @@ Watch a walkthrough from sign-up to report: [docs/demo.mp4](docs/demo.mp4) (reco
 ## What it does
 
 1. **Sign up or log in.** Visitors see a landing page that explains the app. Each account has its own interviews, reports and model settings. Once signed in, the dashboard shows your suggested next step, latest and average score, practice streak, a score trend, the topics you should work on, how you score on each part of the rubric, milestones you have earned, and an interview tip.
-2. **Create an interview:** target role, type (technical, behavioural or mixed), difficulty and number of topics.
+2. **Create a practice session:** target role, type (technical, behavioural or mixed), difficulty, number of questions, and either a live interview or MCQ quiz format.
 3. **Upload documents:** resume (PDF, DOCX or TXT), job description (file or pasted text) and optional extras. Each file shows Uploaded, Parsing, then Ready, and you can read the extracted text.
 4. **Analysis:** the model extracts your profile and the job's requirements. You review and correct them (add or remove skills) before anything else happens. A gap analysis shows matching skills, gaps and claims the interviewer will probe.
 5. **Plan:** a topic outline (introduction, core skills, project deep dives, gap areas, behavioural, your questions). The questions stay hidden so the interview feels real.
 6. **Live interview:** a chat with streamed questions and adaptive follow-ups. The interviewer never shows scores or hints. If you reload the page you pick up where you left off. Switch on **voice mode** to hear each question and answer by speaking (see [Voice mode](#voice-mode)).
+   **MCQ practice:** alternatively, answer four-option questions grounded in the same resume, job description and gap analysis. Answer keys stay hidden until completion, then the app shows a deterministic score and an explanation for every question.
 7. **Feedback report (only when you ask for it):** every answer is scored 1 to 5 on accuracy, depth, relevance, structure and evidence, each with a quote from your answer. You get an overall score and verdict, scores by topic and dimension, strengths and improvement areas, a per-question breakdown with a stronger sample answer, communication notes and a two-week study plan. Download it as a PDF.
 8. **Practise again:** start a new interview from the same documents without uploading or analysing anything twice, either the same interview again or one that asks your weakest topics first.
 9. **Progress:** compare two attempts side by side to see what improved.
@@ -109,14 +110,16 @@ Everyday commands (run from the project folder):
 | Close registration | `ALLOW_SIGNUP=false docker compose up -d` |
 | Serve over HTTPS (cookie flag) | `COOKIE_SECURE=true docker compose up -d` |
 
-The Docker setup has three parts: `frontend` (nginx serving the built app and forwarding `/api`, including the interview WebSocket, to the backend), `backend` (the API) and an optional `ollama` service. Your data lives in Docker volumes named `ai_assistant_app-data` (database, encryption key, search index, voice models) and `ai_assistant_app-uploads` (uploaded files).
+The Docker setup has three parts: `frontend` (nginx serving the built app and forwarding `/api`, including the interview WebSocket, to the backend), `backend` (the API) and an optional `ollama` service. Ollama is disabled by default in Docker so a normal application server does not need to host a resource-heavy model. Your data lives in Docker volumes named `ai_assistant_app-data` (database, encryption key, search index, voice models) and `ai_assistant_app-uploads` (uploaded files).
+
+On startup, additive database upgrades run automatically. Before changing an existing SQLite schema, the backend creates a consistent snapshot in `data/schema-backups` and retains the five newest upgrade snapshots. These snapshots protect upgrades, but they are not a replacement for copying both Docker volumes to independent storage before a production release.
 
 **Using Ollama (local models) with Docker.** Pick one:
 
-- *Ollama already installed on this computer:* Docker containers cannot reach an Ollama that listens only on `127.0.0.1`, which is the default. Make it listen on all interfaces, for example `sudo systemctl edit ollama`, add `Environment="OLLAMA_HOST=0.0.0.0"`, then `sudo systemctl restart ollama`. This also exposes Ollama to your network, so only do it on a network you trust. The backend reaches it at `http://host.docker.internal:11434`.
+- *Ollama already installed on this computer:* start the stack with `ENABLE_OLLAMA=true docker compose up --build -d`. Docker containers cannot reach an Ollama that listens only on `127.0.0.1`, which is the default. Make it listen on all interfaces, for example `sudo systemctl edit ollama`, add `Environment="OLLAMA_HOST=0.0.0.0"`, then `sudo systemctl restart ollama`. This also exposes Ollama to your network, so only do it on a network you trust. The backend reaches it at `http://host.docker.internal:11434`.
 - *Ollama inside Docker:*
   ```bash
-  OLLAMA_URL=http://ollama:11434 docker compose --profile local-llm up --build -d
+  ENABLE_OLLAMA=true OLLAMA_URL=http://ollama:11434 docker compose --profile local-llm up --build -d
   docker compose exec ollama ollama pull mistral:7b
   docker compose exec ollama ollama pull nomic-embed-text
   ```
@@ -345,6 +348,7 @@ Server settings come from environment variables prefixed `AIA_`, or from `backen
 | `AIA_MAX_LOGIN_FAILURES` | `5` | Wrong passwords before a lockout |
 | `AIA_LOGIN_LOCKOUT_MINUTES` | `15` | Lockout length |
 | `AIA_LLM_PROVIDER` | `ollama` | Default provider: `ollama`, `gemini`, `openai`, `anthropic` or `azure` (non-Gemini cloud credentials are configured per account) |
+| `AIA_ENABLE_OLLAMA` | `true` from source, `false` in Docker | Show and permit the local Ollama provider; leave disabled on ordinary hosted servers |
 | `AIA_GEMINI_API_KEY` | none | Optional shared Gemini key for accounts without their own |
 | `AIA_GEMINI_MODEL` | `gemini-3.5-flash-lite` | Default Gemini model |
 | `AIA_GEMINI_TIMEOUT_SECONDS` | `45` | Wait for one Gemini answer |

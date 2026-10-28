@@ -26,6 +26,7 @@ class InterviewSession(Base):
     focus_topics: Mapped[list | None] = mapped_column(JSON, nullable=True)
     target_role: Mapped[str] = mapped_column(String(200))
     interview_type: Mapped[str] = mapped_column(String(20))
+    practice_mode: Mapped[str] = mapped_column(String(20), default="live")  # live | mcq
     difficulty: Mapped[str] = mapped_column(String(20))
     question_count: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(20), default="created")
@@ -47,6 +48,10 @@ class InterviewSession(Base):
 
     @property
     def overall_score(self) -> int | None:
+        if self.practice_mode == "mcq" and self.status == "completed" and self.questions:
+            questions = sorted(self.questions, key=lambda q: q.order_no)[:self.question_count]
+            correct = sum(bool((q.answer.analysis_json or {}).get("correct")) for q in questions if q.answer)
+            return min(100, round(100 * correct / self.question_count))
         return self.report.overall_score if self.report is not None and self.report.status == "ready" else None
 
 
@@ -112,6 +117,9 @@ class Question(Base):
     ack: Mapped[str] = mapped_column(String(200), default="")
     is_follow_up: Mapped[bool] = mapped_column(default=False)
     parent_question_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    options_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    correct_answer: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     answer: Mapped["Answer | None"] = relationship(back_populates="question", cascade="all, delete-orphan", uselist=False)

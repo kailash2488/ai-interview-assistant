@@ -5,7 +5,9 @@ import { Badge } from '../components/ui/badge'
 import { PageHeader } from '../components/ui/page'
 import { Stepper } from '../components/Stepper'
 import { Button } from '../components/ui/button'
-import { api, ApiError, type DocumentItem, type Session } from '../lib/api'
+import { api, ApiError, type DocumentItem, type ReusableDocument, type Session } from '../lib/api'
+import { Card } from '../components/ui/card'
+import { Select } from '../components/ui/field'
 
 const POLL_MS = 1000
 const isPending = (d: DocumentItem) => d.status === 'uploaded' || d.status === 'parsing'
@@ -17,6 +19,8 @@ export function Upload() {
   const [session, setSession] = useState<Session | null>(null)
   const [docs, setDocs] = useState<DocumentItem[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [reusable, setReusable] = useState<ReusableDocument[]>([])
+  const [reuseId, setReuseId] = useState('')
 
   const refresh = useCallback(async () => {
     try {
@@ -32,6 +36,7 @@ export function Upload() {
       .then(setSession)
       .catch((e) => setError(e instanceof ApiError && e.status === 404 ? 'Session not found' : e.message))
     void refresh()
+    api.reusableDocuments(sessionId).then(setReusable).catch(() => undefined)
   }, [sessionId, refresh])
 
   const anyPending = docs.some(isPending)
@@ -66,6 +71,14 @@ export function Upload() {
     }
   }
 
+  async function reuse() {
+    if (!reuseId) return
+    setStarting(true); setError(null)
+    try { await api.reuseDocument(sessionId, reuseId); await refresh(); setReuseId('') }
+    catch (e) { setError(e instanceof Error ? e.message : 'Could not reuse document') }
+    finally { setStarting(false) }
+  }
+
   const byKind = (kind: DocumentItem['kind']) => docs.filter((d) => d.kind === kind)
   const ready = (kind: DocumentItem['kind']) => byKind(kind).some((d) => d.status === 'ready')
   const canContinue = ready('resume') && ready('jd')
@@ -93,6 +106,20 @@ export function Upload() {
         <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
           {error}
         </p>
+      )}
+
+      {reusable.length > 0 && (
+        <Card className="border-brand-200 bg-gradient-to-r from-brand-50 to-white">
+          <h2 className="font-semibold text-slate-900">Reuse a previous document</h2>
+          <p className="mt-1 text-sm text-slate-600">Choose a ready resume or job description from an earlier session, or upload a new one below.</p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <Select aria-label="Previous document" value={reuseId} onChange={(e) => setReuseId(e.target.value)}>
+              <option value="">Select a previous document…</option>
+              {reusable.map((d) => <option key={d.id} value={d.id}>{d.kind === 'resume' ? 'Resume' : 'Job description'} · {d.filename} · {d.session_title}</option>)}
+            </Select>
+            <Button type="button" variant="secondary" disabled={!reuseId || starting} onClick={reuse}>Use selected document</Button>
+          </div>
+        </Card>
       )}
 
       <DocumentSlot {...common} kind="resume" title="Resume" required description="The candidate's resume." documents={byKind('resume')} />

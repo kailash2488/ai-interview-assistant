@@ -69,3 +69,38 @@ class InterviewStateOut(BaseModel):
     main_total: int
     main_asked: int
     turns: list[TurnOut]
+
+
+class MCQDraft(BaseModel):
+    question: str = Field(min_length=12, max_length=500)
+    options: list[str] = Field(min_length=4, max_length=4)
+    correct_index: int = Field(ge=0, le=3)
+    explanation: str = Field(min_length=10, max_length=800)
+
+
+class MCQQuestionOut(BaseModel):
+    question_id: str
+    order_no: int
+    topic: str
+    text: str
+    options: list[str]
+    selected_index: int | None = None
+    correct: bool | None = None
+    correct_index: int | None = None
+    explanation: str | None = None
+
+
+class MCQStateOut(BaseModel):
+    session_id: str
+    status: str
+    total: int
+    answered: int
+    score: int | None = None
+    current: MCQQuestionOut | None = None
+    results: list[MCQQuestionOut] = Field(default_factory=list)
+
+
+class MCQAnswerIn(BaseModel):
+    selected_index: int = Field(ge=0, le=3)
+    # Optional for compatibility with clients deployed before answer request IDs were introduced.
+    question_id: str | None = Field(default=None, min_length=1, max_length=32)

@@ -74,7 +74,8 @@ def test_follow_ups_capped_per_topic_and_by_budget(sid):
     for q in follow:
         per_topic[q["topic"]] = per_topic.get(q["topic"], 0) + 1
     assert max(per_topic.values()) <= 2
-    assert sum(1 for q in qs if not q["is_follow_up"]) == 10  # all planned topics still covered
+    assert len(qs) == 10  # the configured count is a hard cap, including follow-ups
+    assert sum(1 for q in qs if not q["is_follow_up"]) + len(follow) == 10
     assert events[-1]["type"] == "complete"
 
 

@@ -15,7 +15,8 @@ class Settings(BaseSettings):
     max_upload_mb: int = 10
     max_other_documents: int = 10
 
-    # "ollama" (local, private, default) or "gemini" (Google's hosted API; needs AIA_GEMINI_API_KEY)
+    # Keep local models available for source-based development, but allow deployments to disable them.
+    enable_ollama: bool = True
     llm_provider: Literal["ollama", "gemini", "openai", "anthropic", "azure"] = "ollama"
 
     gemini_api_key: SecretStr | None = None

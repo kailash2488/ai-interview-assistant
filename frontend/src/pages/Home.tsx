@@ -160,10 +160,11 @@ export function Home() {
         <ul className="space-y-3">
           {sessions?.map((s) => {
             const stage = STAGES[s.status] ?? STAGES.created
+            const next = s.practice_mode === 'mcq' && (s.status === 'planned' || s.status === 'in_progress' || s.status === 'completed') ? `/sessions/${s.id}/mcq` : stage.next(s.id)
             return (
               <li key={s.id}>
                 <Card className="group flex items-center gap-4 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lift">
-                  <Link to={stage.next(s.id)} className="min-w-0 flex-1">
+                  <Link to={next} className="min-w-0 flex-1">
                     <p className="truncate text-base font-semibold text-slate-900">{s.title}</p>
                     <p className="mt-0.5 truncate text-sm text-slate-500">
                       {s.target_role} · {formatDate(s.created_at)}
@@ -172,10 +173,11 @@ export function Home() {
                   <div className="hidden items-center gap-2 sm:flex">
                     {s.focus_topics && s.focus_topics.length > 0 && <Badge tone="brand">Focus: {s.focus_topics.join(', ')}</Badge>}
                     <Badge>{s.interview_type}</Badge>
+                    {s.practice_mode === 'mcq' && <Badge tone="brand">MCQ</Badge>}
                     <Badge>{s.question_count} topics</Badge>
                     {s.overall_score !== null ? <Badge tone={scoreTone(s.overall_score)}>Score {s.overall_score}</Badge> : <Badge tone={stage.tone}>{stage.label}</Badge>}
                   </div>
-                  {(s.status === 'completed' || s.status === 'reported') && (
+                  {s.practice_mode !== 'mcq' && (s.status === 'completed' || s.status === 'reported') && (
                     <Link to={`/sessions/${s.id}/report`} className="text-sm font-medium text-brand-700 hover:underline">
                       {s.status === 'reported' ? 'Report' : 'Get report'}
                     </Link>

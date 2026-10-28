@@ -89,8 +89,8 @@ class InterviewEngine:
             return {
                 "session_id": session.id,
                 "status": session.status,
-                "main_total": total,
-                "main_asked": sum(1 for q in questions if not q.is_follow_up),
+                "main_total": session.question_count or total,
+                "main_asked": min(len(questions), session.question_count),
                 "turns": [
                     {"question_id": q.id, "order_no": q.order_no, "topic": q.topic, "ack": q.ack, "text": q.text,
                      "is_follow_up": q.is_follow_up, "answer": q.answer.text if q.answer else None}
@@ -146,6 +146,12 @@ class InterviewEngine:
     def _advance(self, db: Session, ctx: _Context) -> Iterator[dict]:
         questions = self._questions(ctx.session)
         last = questions[-1]
+        # question_count is a hard user-facing cap, including adaptive follow-ups.
+        if len(questions) >= ctx.session.question_count:
+            ctx.session.status = "completed"
+            db.commit()
+            yield {"type": "complete", "message": CLOSING_TEXT}
+            return
         item = ctx.plan.items[last.plan_index]
         analysis = self._analysis_for(db, last, item)
 
@@ -227,9 +233,10 @@ class InterviewEngine:
         yield self._question_event(ctx, row)
 
     def _question_event(self, ctx: _Context, q: Question, replay: bool = False) -> dict:
-        main_asked = sum(1 for x in self._questions(ctx.session) if not x.is_follow_up)
+        asked = min(len(self._questions(ctx.session)), ctx.session.question_count)
         return {
             "type": "question", "question_id": q.id, "order_no": q.order_no, "topic": q.topic, "text": q.text,
             "ack": q.ack, "is_follow_up": q.is_follow_up, "replay": replay,
-            "progress": {"main_asked": main_asked, "main_total": len(ctx.plan.items)},
+            # Field names are retained for clients deployed before progress included follow-ups.
+            "progress": {"main_asked": asked, "main_total": ctx.session.question_count},
         }

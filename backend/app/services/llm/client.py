@@ -159,4 +159,8 @@ def get_llm(config=None) -> LLMClient:
         from app.services.llm.hosted import AnthropicClient
 
         return AnthropicClient(config)
+    if not settings.enable_ollama:
+        raise LLMUnavailable(
+            "Local Ollama is disabled on this server. Choose Gemini, OpenAI, Anthropic, or Azure OpenAI in Settings."
+        )
     return OllamaClient()

@@ -16,11 +16,12 @@ export interface Session {
   created_at: string
   overall_score: number | null
   focus_topics: string[] | null
+  practice_mode?: 'live' | 'mcq'
 }
 
 export type SessionCreate = Pick<
   Session,
-  'title' | 'target_role' | 'interview_type' | 'difficulty' | 'question_count'
+  'title' | 'target_role' | 'interview_type' | 'difficulty' | 'question_count' | 'practice_mode'
 >
 
 export interface DocumentItem {
@@ -37,6 +38,7 @@ export interface DocumentDetail extends DocumentItem {
   raw_text: string | null
   sections_json: Array<{ name: string; text: string }> | null
 }
+export interface ReusableDocument { id: string; filename: string; session_title: string; kind: 'resume' | 'jd' }
 
 export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'unknown'
 export interface SkillItem {
@@ -114,6 +116,27 @@ export interface InterviewState {
   turns: Turn[]
 }
 
+export interface MCQQuestion {
+  question_id: string
+  order_no: number
+  topic: string
+  text: string
+  options: string[]
+  selected_index: number | null
+  correct: boolean | null
+  correct_index: number | null
+  explanation: string | null
+}
+export interface MCQState {
+  session_id: string
+  status: string
+  total: number
+  answered: number
+  score: number | null
+  current: MCQQuestion | null
+  results: MCQQuestion[]
+}
+
 export type ServerMessage =
   | ({ type: 'state' } & InterviewState)
   | { type: 'thinking' }
@@ -153,6 +176,7 @@ export interface LLMSettings {
   gemini_key_hint: string | null
   gemini_key_source: 'settings' | 'environment' | 'none'
   ollama_model: string
+  ollama_enabled: boolean
   openai_model: string
   anthropic_model: string
   azure_model: string
@@ -386,8 +410,13 @@ export const api = {
   getSession: (id: string) => request<Session>(`/sessions/${id}`),
   createSession: (payload: SessionCreate) => request<Session>('/sessions', json(payload)),
   deleteSession: (id: string) => request<void>(`/sessions/${id}`, { method: 'DELETE' }),
+  getMCQ: (sid: string) => request<MCQState>(`/sessions/${sid}/mcq`),
+  startMCQ: (sid: string) => request<MCQState>(`/sessions/${sid}/mcq/start`, { method: 'POST' }),
+  answerMCQ: (sid: string, question_id: string, selected_index: number) => request<MCQState>(`/sessions/${sid}/mcq/answer`, json({ question_id, selected_index })),
 
   listDocuments: (sid: string) => request<DocumentItem[]>(`/sessions/${sid}/documents`),
+  reusableDocuments: (sid: string) => request<ReusableDocument[]>(`/sessions/${sid}/documents/reuse-options`),
+  reuseDocument: (sid: string, document_id: string) => request<DocumentItem>(`/sessions/${sid}/documents/reuse`, json({ document_id })),
   getDocument: (sid: string, did: string) => request<DocumentDetail>(`/sessions/${sid}/documents/${did}`),
   uploadDocument: (sid: string, kind: DocumentKind, file: File) => {
     const form = new FormData()

@@ -121,8 +121,12 @@ def next_action(sessions: list[InterviewSession]) -> NextAction:
         sid = s.id
         has = {d.kind for d in s.documents if d.status == "ready"}
         if s.status == "in_progress":
-            return NextAction(kind="continue", title=s.title, label="Continue your interview", description=f"You are partway through “{s.title}”. Pick up where you stopped.", session_id=sid, href=f"/sessions/{sid}/interview")
+            href = f"/sessions/{sid}/mcq" if s.practice_mode == "mcq" else f"/sessions/{sid}/interview"
+            label = "Continue your MCQ quiz" if s.practice_mode == "mcq" else "Continue your interview"
+            return NextAction(kind="continue", title=s.title, label=label, description=f"You are partway through “{s.title}”. Pick up where you stopped.", session_id=sid, href=href)
         if s.status == "completed" and s.report is None:
+            if s.practice_mode == "mcq":
+                return NextAction(kind="report", title=s.title, label="Review your MCQ results", description=f"“{s.title}” is complete. Review every answer and explanation.", session_id=sid, href=f"/sessions/{sid}/mcq")
             return NextAction(kind="report", title=s.title, label="Get your feedback report", description=f"“{s.title}” is finished. See how you did and what to work on.", session_id=sid, href=f"/sessions/{sid}/report")
         if s.status == "planned":
             return NextAction(kind="start", title=s.title, label="Start your interview", description=f"The plan for “{s.title}” is ready.", session_id=sid, href=f"/sessions/{sid}/plan")

@@ -72,20 +72,23 @@ def retry(session_id: str, payload: RetryIn, background: BackgroundTasks, db: Se
 
     new = InterviewSession(
         user_id=user.id, title=_next_title(db, user, src.title), target_role=src.target_role, interview_type=src.interview_type,
-        difficulty=src.difficulty, question_count=src.question_count, status="analysed", focus_topics=focus,
+        difficulty=src.difficulty, question_count=src.question_count, practice_mode=src.practice_mode,
+        status="analysed", focus_topics=focus,
     )
     db.add(new)
     db.flush()  # the new id names the upload folder
 
     dest = settings.upload_dir / new.id
+    dest.mkdir(parents=True, exist_ok=True)
     for doc in db.scalars(select(Document).where(Document.session_id == src.id, Document.status == "ready")):
-        stored = doc.stored_path
+        target = dest / doc.stored_path.rsplit("/", 1)[-1]
         try:
-            dest.mkdir(parents=True, exist_ok=True)
-            stored = str(shutil.copy2(doc.stored_path, dest / doc.stored_path.rsplit("/", 1)[-1]))
+            shutil.copy2(doc.stored_path, target)
         except OSError:
-            pass  # the parsed text is copied below, which is what the interview uses
-        db.add(Document(session_id=new.id, kind=doc.kind, filename=doc.filename, stored_path=stored, status="ready",
+            # Never point the new attempt at the old session's file: deleting the old attempt must remain safe.
+            target = target.with_suffix(".txt")
+            target.write_text(doc.raw_text or "", encoding="utf-8")
+        db.add(Document(session_id=new.id, kind=doc.kind, filename=doc.filename, stored_path=str(target), status="ready",
                         raw_text=doc.raw_text, sections_json=doc.sections_json))
     a = src.analysis
     db.add(SessionAnalysis(session_id=new.id, status="ready", model=a.model, user_edited=a.user_edited, warnings_json=list(a.warnings_json or []),

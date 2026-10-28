@@ -11,7 +11,7 @@ const base: LLMSettings = {
     { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', note: 'Newest', tier: 'free' },
     { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (preview)', note: 'Strongest', tier: 'paid' },
   ],
-  gemini_key_set: false, gemini_key_hint: null, gemini_key_source: 'none', ollama_model: 'mistral:7b',
+  gemini_key_set: false, gemini_key_hint: null, gemini_key_source: 'none', ollama_model: 'mistral:7b', ollama_enabled: true,
   openai_model: 'gpt-4o-mini', anthropic_model: 'claude-3-5-haiku-latest', azure_model: 'your-deployment-name',
   azure_endpoint: '', azure_api_version: '2024-10-21', key_set: { gemini: false, openai: false, anthropic: false, azure: false },
   key_hint: { gemini: null, openai: null, anthropic: null, azure: null },

@@ -1,6 +1,6 @@
 import hashlib
 
-from app.schemas.interview import AnswerAnalysis
+from app.schemas.interview import AnswerAnalysis, MCQDraft
 from app.schemas.report import AnswerEvaluation, DimScore, Insight, PlanStep, ReportNarrative
 from app.schemas.analysis import CandidateProfile, Employer, JDRequirements, Project, SkillItem
 
@@ -64,6 +64,8 @@ class FakeLLM:
         self.embed_calls = 0
 
     def chat_json(self, *, system, user, schema, model=None, temperature=0.1, max_tokens=None):
+        if self.fail_with:
+            raise self.fail_with
         if schema is AnswerEvaluation:
             self.calls.append((schema.__name__, system, user))
             item = self.evaluations.pop(0) if self.evaluations else fake_evaluation()
@@ -82,8 +84,14 @@ class FakeLLM:
             if isinstance(item, Exception):
                 raise item
             return item
-        if self.fail_with:
-            raise self.fail_with
+        if schema is MCQDraft:
+            self.calls.append((schema.__name__, system, user))
+            return MCQDraft(
+                question="Which option best demonstrates the topic in practice?",
+                options=["The correct practical approach", "An unrelated shortcut", "Ignoring the requirement", "A clearly unsafe approach"],
+                correct_index=0,
+                explanation="The first option directly applies the topic while the other choices miss the stated requirement.",
+            )
         self.calls.append((schema.__name__, system, user))
         return fake_profile() if schema is CandidateProfile else fake_requirements()
 

@@ -31,6 +31,7 @@ class LLMSettingsOut(BaseModel):
     gemini_key_hint: str | None
     gemini_key_source: Literal["settings", "environment", "none"]
     ollama_model: str
+    ollama_enabled: bool
     openai_model: str
     anthropic_model: str
     azure_model: str
@@ -94,6 +95,7 @@ def _out(db: Session, user: User) -> LLMSettingsOut:
         provider=cfg.provider, gemini_model=cfg.gemini_model, gemini_models=us.GEMINI_MODELS,
         gemini_key_set=cfg.key_source != "none", gemini_key_hint=cfg.key_hint, gemini_key_source=cfg.key_source,
         ollama_model=settings.interviewer_model,
+        ollama_enabled=settings.enable_ollama,
         openai_model=(row.openai_model if row and row.openai_model else us.DEFAULT_MODELS["openai"]),
         anthropic_model=(row.anthropic_model if row and row.anthropic_model else us.DEFAULT_MODELS["anthropic"]),
         azure_model=(row.azure_model if row and row.azure_model else "your-deployment-name"),
@@ -110,6 +112,11 @@ def get_settings(db: Session = Depends(get_db), user: User = Depends(current_use
 
 @router.put("", response_model=LLMSettingsOut)
 def update_settings(payload: LLMSettingsIn, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    if payload.provider == "ollama" and not settings.enable_ollama:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Local Ollama is disabled on this server. Choose a cloud provider.",
+        )
     existing = _out(db, user)
     incoming_key = payload.gemini_api_key if payload.provider == "gemini" else payload.api_key
     if payload.provider != "ollama" and not incoming_key and not existing.key_set.get(payload.provider):
@@ -134,7 +141,7 @@ def remove_key(db: Session = Depends(get_db), user: User = Depends(current_user)
     us.save_for_user(db, user.id, provider="gemini", gemini_model=cfg.gemini_model, clear_key=True)
     row = db.get(us.UserLLMSettings, user.id)
     if row:
-        row.provider = "gemini" if still_has_server_key else "ollama"
+        row.provider = "gemini" if still_has_server_key or not settings.enable_ollama else "ollama"
         db.commit()
     return _out(db, user)
 
@@ -145,7 +152,7 @@ def remove_provider_key(provider: Literal["gemini", "openai", "anthropic", "azur
     us.save_for_user(db, user.id, provider=provider, gemini_model=cfg.gemini_model, clear_key=True)
     row = db.get(us.UserLLMSettings, user.id)
     if row and row.provider == provider:
-        row.provider = "ollama"
+        row.provider = "gemini" if not settings.enable_ollama else "ollama"
         db.commit()
     return _out(db, user)
 

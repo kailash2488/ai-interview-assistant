@@ -48,7 +48,7 @@ export function PlanPage() {
       <PageHeader
         title="Interview plan"
         back={{ to: `/sessions/${sessionId}/analysis`, label: 'Analysis' }}
-        subtitle="These are the topics, in order. The questions stay hidden so the interview feels real, and follow-ups may be added on the way."
+        subtitle={session?.practice_mode === 'mcq' ? 'These topics will become multiple-choice questions. Correct answers stay hidden until the quiz is complete.' : 'These are the topics, in order. The questions stay hidden so the interview feels real, and follow-ups may be added on the way.'}
       />
       {session?.focus_topics && session.focus_topics.length > 0 && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-4 text-sm text-brand-900">
@@ -74,7 +74,9 @@ export function PlanPage() {
         {[
           { icon: Lightbulb, title: 'Point first', text: 'Start with your answer in one sentence, then give an example.' },
           { icon: Lightbulb, title: 'One to two minutes', text: 'Most answers fit in 60 to 120 seconds, with one real example and a number.' },
-          { icon: Mic, title: 'Prefer to talk?', text: 'Switch on voice mode in the interview. Use headphones in a quiet room.' },
+          session?.practice_mode === 'mcq'
+            ? { icon: Target, title: 'Choose one answer', text: 'Each question has four choices and exactly one correct answer.' }
+            : { icon: Mic, title: 'Prefer to talk?', text: 'Switch on voice mode in the interview. Use headphones in a quiet room.' },
         ].map((t) => (
           <div key={t.title} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
@@ -89,10 +91,10 @@ export function PlanPage() {
       </section>
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-fuchsia-50 p-5">
         <p className="max-w-xl text-sm text-slate-600">
-          Answer one question at a time. Scores are not shown during the interview. If you use a local model, close other heavy apps so it stays fast.
+          {session?.practice_mode === 'mcq' ? 'Choose one option per question. Your score, correct answers and explanations appear after the final question.' : 'Answer one question at a time. Scores are not shown during the interview. If you use a local model, close other heavy apps so it stays fast.'}
         </p>
-        <Button size="lg" onClick={() => navigate(`/sessions/${sessionId}/interview`)}>
-          Start interview
+        <Button size="lg" onClick={() => navigate(`/sessions/${sessionId}/${session?.practice_mode === 'mcq' ? 'mcq' : 'interview'}`)}>
+          {session?.practice_mode === 'mcq' ? 'Start MCQ quiz' : 'Start interview'}
         </Button>
       </div>
     </div>

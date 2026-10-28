@@ -2,9 +2,9 @@
 #
 # Models: pick one on the app's Settings page.
 #   - Gemini (cloud, fast): paste an API key in Settings. Nothing else to install.
-#   - Local Ollama (free, private, slow on CPU), either:
-#       a) Ollama already running on this computer: nothing to do, the backend reaches it via host.docker.internal.
-#       b) Ollama in Docker:  OLLAMA_URL=http://ollama:11434 docker compose --profile local-llm up --build
+#   - Local Ollama is disabled by default for server-friendly deployments. To opt in:
+#       a) Ollama already running: ENABLE_OLLAMA=true docker compose up --build
+#       b) Ollama in Docker: ENABLE_OLLAMA=true OLLAMA_URL=http://ollama:11434 docker compose --profile local-llm up --build
 #          docker compose exec ollama ollama pull mistral:7b && docker compose exec ollama ollama pull nomic-embed-text
 #
 # Voice mode (optional): INSTALL_VOICE=1 docker compose up --build, then once:
@@ -20,6 +20,7 @@ services:
       - path: ./backend/.env
         required: false
     environment:
+      AIA_ENABLE_OLLAMA: ${ENABLE_OLLAMA:-false}
       AIA_OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       AIA_ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}        # set to false once your accounts exist
       AIA_COOKIE_SECURE: ${COOKIE_SECURE:-false}     # set to true when serving over HTTPS

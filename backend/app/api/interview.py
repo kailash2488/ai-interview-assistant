@@ -39,11 +39,15 @@ def create_plan(session_id: str, db: Session = Depends(get_db), user: User = Dep
     if session.questions:
         raise HTTPException(status.HTTP_409_CONFLICT, "The interview has already started; its plan can no longer change")
     plan = build_plan(
-        question_count=session.question_count, interview_type=session.interview_type, difficulty=session.difficulty,
+        question_count=session.question_count + (2 if session.practice_mode == "mcq" else 0), interview_type=session.interview_type, difficulty=session.difficulty,
         role=session.target_role, profile=CandidateProfile.model_validate(analysis.profile_json),
         requirements=JDRequirements.model_validate(analysis.requirements_json), gap=GapAnalysis.model_validate(analysis.gap_json),
         focus_topics=session.focus_topics,
     )
+    if session.practice_mode == "mcq":
+        scored = [item for item in plan.items if item.category.value not in ("intro", "closing")]
+        plan.items = [item.model_copy(update={"index": i, "max_followups": 0}) for i, item in enumerate(scored)]
+        plan.followup_budget = 0
     if session.plan is None:
         session.plan = InterviewPlanRow(plan_json=plan.model_dump(mode="json"))
     else:

@@ -1,8 +1,10 @@
 import logging
+import shutil
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,7 +12,7 @@ from app.api.deps import current_user
 from app.api.sessions import get_session_or_404
 from app.core.config import settings
 from app.core.db import get_db
-from app.models import Document, User
+from app.models import Document, InterviewSession, User
 from app.schemas.document import DocumentDetail, DocumentKind, DocumentOut
 from app.services.ingestion.parsers import ALLOWED_EXTENSIONS, ParseError, validate_signature
 from app.services import vectorstore
@@ -20,6 +22,17 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/sessions/{session_id}/documents", tags=["documents"])
 
 SINGLETON_KINDS = {DocumentKind.resume.value, DocumentKind.jd.value}
+
+
+class ReusableDocument(BaseModel):
+    id: str
+    filename: str
+    session_title: str
+    kind: str
+
+
+class ReuseIn(BaseModel):
+    document_id: str
 
 
 def _reset_analysis(db: Session, session) -> None:
@@ -97,6 +110,39 @@ async def upload_document(
 def list_documents(session_id: str, db: Session = Depends(get_db), user: User = Depends(current_user)):
     get_session_or_404(session_id, db, user)
     return db.scalars(select(Document).where(Document.session_id == session_id).order_by(Document.created_at)).all()
+
+
+@router.get("/reuse-options", response_model=list[ReusableDocument])
+def reuse_options(session_id: str, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    get_session_or_404(session_id, db, user)
+    rows = db.execute(select(Document, InterviewSession).join(
+        InterviewSession, Document.session_id == InterviewSession.id
+    ).where(InterviewSession.user_id == user.id, Document.session_id != session_id,
+            Document.status == "ready", Document.kind.in_(("resume", "jd"))).order_by(Document.created_at.desc())).all()
+    return [ReusableDocument(id=d.id, filename=d.filename, session_title=s.title, kind=d.kind) for d, s in rows]
+
+
+@router.post("/reuse", response_model=DocumentOut, status_code=status.HTTP_201_CREATED)
+def reuse_document(session_id: str, payload: ReuseIn, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    session = get_session_or_404(session_id, db, user)
+    source = db.get(Document, payload.document_id)
+    source_session = db.get(InterviewSession, source.session_id) if source else None
+    if source is None or source_session is None or source_session.user_id != user.id or source.status != "ready" or source.kind not in SINGLETON_KINDS:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Reusable document not found")
+    _reset_analysis(db, session)
+    for old in list(session.documents):
+        if old.kind == source.kind:
+            Path(old.stored_path).unlink(missing_ok=True); db.delete(old)
+    dest_dir = settings.upload_dir / session_id; dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / f"{uuid.uuid4().hex}{Path(source.filename).suffix.lower()}"
+    try:
+        shutil.copy2(source.stored_path, dest)
+    except OSError:
+        # A restored database may outlive its original upload. Reuse the parsed text without faking a PDF/DOCX.
+        dest = dest.with_suffix(".txt")
+        dest.write_text(source.raw_text or "", encoding="utf-8")
+    doc = Document(session_id=session_id, kind=source.kind, filename=source.filename, stored_path=str(dest), status="ready", raw_text=source.raw_text, sections_json=source.sections_json)
+    db.add(doc); db.commit(); return doc
 
 
 @router.get("/{document_id}", response_model=DocumentDetail)

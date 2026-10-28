@@ -22,6 +22,7 @@ class SessionCreate(BaseModel):
     interview_type: InterviewType = InterviewType.mixed
     difficulty: Difficulty = Difficulty.medium
     question_count: int = Field(default=10, ge=3, le=30)
+    practice_mode: str = Field(default="live", pattern="^(live|mcq)$")
 
 
 class SessionOut(BaseModel):
@@ -37,3 +38,4 @@ class SessionOut(BaseModel):
     created_at: datetime
     overall_score: int | None = None
     focus_topics: list[str] | None = None
+    practice_mode: str = "live"

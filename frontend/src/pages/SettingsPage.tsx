@@ -41,7 +41,12 @@ export function SettingsPage() {
 
   const modelFor = (s: LLMSettings, p: Provider) => p === 'openai' ? s.openai_model : p === 'anthropic' ? s.anthropic_model : p === 'azure' ? s.azure_model : ''
   function adopt(s: LLMSettings) {
-    setSaved(s); setProvider(s.provider); setGeminiModel(s.gemini_model); setModel(modelFor(s, s.provider))
+    const selected = s.provider === 'ollama' && !s.ollama_enabled ? 'gemini' : s.provider
+    if (!s.ollama_enabled) {
+      const ollamaIndex = PROVIDERS.findIndex((item) => item.id === 'ollama')
+      if (ollamaIndex >= 0) PROVIDERS.splice(ollamaIndex, 1)
+    }
+    setSaved(s); setProvider(selected); setGeminiModel(s.gemini_model); setModel(modelFor(s, selected))
     setEndpoint(s.azure_endpoint); setApiVersion(s.azure_api_version); setKey('')
   }
   useEffect(() => {
@@ -65,7 +70,8 @@ export function SettingsPage() {
     try { setTest(await api.testLLM()) } catch (err) { setError(err instanceof Error ? err.message : 'Connection test failed') } finally { setBusy(false) }
   }
   async function removeKey() {
-    if (provider === 'ollama' || !window.confirm(`Remove the saved ${PROVIDERS.find((p) => p.id === provider)?.name} key and switch to Ollama?`)) return
+    const fallback = saved?.ollama_enabled ? 'Ollama' : 'Gemini configuration'
+    if (provider === 'ollama' || !window.confirm(`Remove the saved ${PROVIDERS.find((p) => p.id === provider)?.name} key and switch to ${fallback}?`)) return
     try { adopt(await (provider === 'gemini' ? api.removeGeminiKey() : api.removeProviderKey(provider))); setNotice('Credential removed securely.') } catch (err) { setError(err instanceof Error ? err.message : 'Could not remove the key') }
   }
   async function wipe() {
