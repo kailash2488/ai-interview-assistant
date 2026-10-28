@@ -91,9 +91,11 @@ def _out(db: Session, user: User) -> LLMSettingsOut:
         key = us.decrypt_secret(enc) if enc else (us._env_key() if provider == "gemini" else None)
         keys[provider] = bool(key)
         hints[provider] = f"…{key[-4:]}" if key and len(key) >= 8 else None
+    saved_gemini = us.decrypt_secret(row.gemini_key_enc) if row and row.gemini_key_enc else None
+    gemini_source = "settings" if saved_gemini else ("environment" if us._env_key() else "none")
     return LLMSettingsOut(
         provider=cfg.provider, gemini_model=cfg.gemini_model, gemini_models=us.GEMINI_MODELS,
-        gemini_key_set=cfg.key_source != "none", gemini_key_hint=cfg.key_hint, gemini_key_source=cfg.key_source,
+        gemini_key_set=keys["gemini"], gemini_key_hint=hints["gemini"], gemini_key_source=gemini_source,
         ollama_model=settings.interviewer_model,
         ollama_enabled=settings.enable_ollama,
         openai_model=(row.openai_model if row and row.openai_model else us.DEFAULT_MODELS["openai"]),

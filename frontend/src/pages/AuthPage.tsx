@@ -13,7 +13,7 @@ const BENEFITS = [
   'Questions written from your own resume and the job description',
   'Follow-ups that dig into your answers, like a real interviewer',
   'A scored report with evidence quotes and a two-week study plan',
-  'Your choice of AI: private on your computer, or fast in the cloud',
+  'Choose from the AI providers enabled for this site',
 ]
 
 function PasswordInput({ value, onChange, autoComplete, id }: { value: string; onChange: (v: string) => void; autoComplete: string; id?: string }) {
@@ -165,7 +165,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
               </li>
             ))}
           </ul>
-          <p className="mt-12 text-sm text-brand-200">Open source and free to run. Your documents stay in your own database.</p>
+          <p className="mt-12 text-sm text-brand-200">Open source. Your documents stay in this application’s database until you delete them.</p>
         </div>
       </aside>
     </div>

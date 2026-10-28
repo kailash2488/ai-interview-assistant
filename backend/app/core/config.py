@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     code_runner_timeout_seconds: float = 8.0
     code_max_chars: int = 20_000
     system_design_max_mb: int = 5
+
+    # Phase 8 foundations. Roadmap features remain disabled until their implementation phase is complete.
+    feature_flags: set[str] = Field(default_factory=set)
+    ai_requests_per_minute: int = Field(default=10, ge=1, le=120)
 
     # Keep local models available for source-based development, but allow deployments to disable them.
     enable_ollama: bool = True

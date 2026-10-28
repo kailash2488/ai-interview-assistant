@@ -135,7 +135,7 @@ def _runner_configured() -> bool:
 
 def _runner_health() -> tuple[bool, str]:
     if not _runner_configured():
-        return False, "Python execution is disabled until an administrator configures the isolated runner."
+        return False, "JavaScript practice is ready now. Python practice will appear when it is enabled for this site."
     try:
         response = httpx.get(
             settings.code_runner_url.rstrip("/") + "/health",
@@ -148,7 +148,7 @@ def _runner_health() -> tuple[bool, str]:
             return True, str(payload.get("detail") or "The isolated Python runner is ready.")[:300]
     except (httpx.HTTPError, ValueError, TypeError):
         pass
-    return False, "The runner is configured but not ready. Check Docker, gVisor and the sandbox image."
+    return False, "Python practice is temporarily unavailable. Please use JavaScript practice or try again later."
 
 
 @router.get("/coding", response_model=CodingStatus)

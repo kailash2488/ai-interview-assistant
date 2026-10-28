@@ -35,6 +35,19 @@ const renderPage = () => render(<MemoryRouter><SettingsPage /></MemoryRouter>)
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Settings page', () => {
+  it('does not permanently remove the local provider after viewing a hosted setup', async () => {
+    stub(() => [200, { ...base, provider: 'gemini', ollama_enabled: false }])
+    const first = renderPage()
+    expect(await screen.findByLabelText(/Google Gemini/)).toBeChecked()
+    expect(screen.queryByLabelText(/Local model/)).not.toBeInTheDocument()
+    first.unmount()
+
+    vi.unstubAllGlobals()
+    stub(() => [200, base])
+    renderPage()
+    expect(await screen.findByLabelText(/Local model/)).toBeChecked()
+  })
+
   it('defaults to the free local model and hides key fields', async () => {
     stub(() => [200, base])
     renderPage()

@@ -197,8 +197,8 @@ export function LabsPage() {
         {[
           [
             Braces,
-            "Sandboxed coding",
-            "Run JavaScript safely in your browser, with an optional isolated server runner for Python.",
+            "Coding practice",
+            "Solve JavaScript challenges instantly, and use Python when secure execution is available.",
           ],
           [
             Image,
@@ -232,19 +232,21 @@ export function LabsPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[.15em] text-brand-600">
-              Works without server setup
+              Ready to practise
             </p>
             <h2 className="mt-1 text-xl font-semibold">
-              JavaScript browser sandbox
+              JavaScript coding practice
             </h2>
           </div>
           <Badge tone="success">Ready</Badge>
         </div>
         <p className="flex gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
-          <ShieldCheck className="size-5 shrink-0 text-emerald-600" /> Runs in a
-          disposable Web Worker with DOM, cookies, network, storage and
-          nested-worker APIs unavailable. It is terminated after 2.5 seconds and
-          code never reaches the server.
+          <ShieldCheck className="size-5 shrink-0 text-emerald-600" />
+          <span>
+            Start immediately—your JavaScript runs privately in this browser
+            with internet access and personal browser data blocked. Each run
+            stops automatically if it takes too long.
+          </span>
         </p>
         <div className="grid gap-4 sm:grid-cols-[240px_1fr]">
           <Field label="Practice challenge">
@@ -306,13 +308,13 @@ export function LabsPage() {
               Coding round
             </p>
             <h2 className="mt-1 text-xl font-semibold">
-              Optional server runner (Python)
+              Python coding practice
             </h2>
           </div>
           <Badge tone={coding?.enabled ? "success" : "warning"}>
             {coding?.enabled
-              ? "Isolated Python runner ready"
-              : "Python runner unavailable"}
+              ? "Python is ready"
+              : "Python is not available yet"}
           </Badge>
         </div>
         <p className="flex gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">

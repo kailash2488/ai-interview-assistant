@@ -78,12 +78,12 @@ describe('landing page and routing', () => {
     expect(screen.queryByRole('heading', { name: /ready to practise/ })).not.toBeInTheDocument()
   })
 
-  it('does not overclaim: the privacy section tells the truth about Gemini', async () => {
+  it('does not overclaim: the privacy section explains local and cloud processing', async () => {
     installWorld()
     visit('/')
     await screen.findByRole('heading', { level: 1 })
-    expect(screen.getByText(/Your documents are sent to Google/)).toBeInTheDocument()
-    expect(screen.getByText(/never leaves your computer/i)).toBeInTheDocument()
+    expect(screen.getByText(/Relevant content is sent to the provider you select/)).toBeInTheDocument()
+    expect(screen.getByText(/Documents stay on the machine hosting the application/)).toBeInTheDocument()
   })
 
   it('sends signed-out visitors from a protected page to login and remembers where they were going', async () => {

@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analysis, auth, dashboard, data, documents, history, interview, labs, llm_settings, mcq, practice, report, sessions, voice
+from app.api import analysis, auth, dashboard, data, documents, history, interview, labs, llm_settings, mcq, platform, practice, report, sessions, voice
 from app.core.config import settings
 from app.core.db import init_db
 
@@ -30,7 +30,7 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
-    response.headers.setdefault("Cache-Control", "no-store" if request.url.path.startswith(("/auth", "/labs")) else "no-cache")
+    response.headers.setdefault("Cache-Control", "no-store" if request.url.path.startswith(("/auth", "/labs", "/platform")) else "no-cache")
     return response
 app.include_router(auth.router)
 app.include_router(sessions.router)
@@ -46,6 +46,7 @@ app.include_router(practice.router)
 app.include_router(voice.router)
 app.include_router(data.router)
 app.include_router(labs.router)
+app.include_router(platform.router)
 
 
 @app.get("/health", tags=["meta"])

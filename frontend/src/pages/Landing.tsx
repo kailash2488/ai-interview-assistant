@@ -12,7 +12,7 @@ const FEATURES = [
   { icon: ClipboardCheck, title: 'Honest, evidence-based scoring', text: 'Every answer is scored on accuracy, depth, relevance, structure and evidence, each with a quote from what you said. A score without evidence is capped.' },
   { icon: BrainCircuit, title: 'A study plan, not just a number', text: 'Get your strengths, your weakest topics, a stronger sample answer for every question, and a concrete two-week plan.' },
   { icon: LineChart, title: 'See yourself improve', text: 'Compare any two attempts side by side. Know which skills moved and which still need work before the real thing.' },
-  { icon: LockKeyhole, title: 'Private by design', text: 'Run the AI on your own computer so your resume never leaves it, or use Gemini with your own key for speed. You choose, and you can delete everything in one click.' },
+  { icon: LockKeyhole, title: 'Clear privacy choices', text: 'Choose an available AI provider, see where your documents are processed, and delete your interviews and files whenever you want.' },
 ]
 
 const STEPS = [
@@ -23,9 +23,9 @@ const STEPS = [
 ]
 
 const FAQ = [
-  { q: 'Is it really free?', a: 'Yes. The app is open source (MIT). Running it costs nothing with a local model. If you pick Gemini, you use your own Google key, which has a free tier with rate limits.' },
-  { q: 'Where does my resume go?', a: 'It is stored in the database of the server running the app, and you can delete one interview or everything from Settings. With a local model it never leaves that machine. With Gemini, the resume and job description are sent to Google for analysis, and on the free tier Google may use them to improve its products.' },
-  { q: 'Do I need a powerful computer?', a: 'Not with Gemini: analysis takes seconds. Local models work too but are slow on a laptop without a GPU: expect a couple of minutes for analysis and up to a minute per question.' },
+  { q: 'Is it really free?', a: 'The application is free and open source under the MIT license. AI providers may have their own free-tier limits or usage charges, so check the provider you select in Settings.' },
+  { q: 'Where does my resume go?', a: 'Your resume is stored by the server running this site so it can be reused for your practice sessions. When you choose a cloud AI provider, relevant document content is sent to that provider. You can delete individual interviews or all your stored data from Settings.' },
+  { q: 'Do I need a powerful computer?', a: 'No. With a cloud AI provider, the AI processing happens on that provider’s systems. A local model is available only on sites whose owner has enabled it and may require stronger hardware.' },
   { q: 'Can I trust the scores?', a: 'Treat them as a practice aid. A language model applies a rubric, and the app adds guards (evidence quotes must really appear in your answer, for example). They are great for comparing your own attempts over time, and they are not a hiring decision.' },
   { q: 'What roles does it support?', a: 'It works for any role you can describe with a resume and a job description. It was tuned first on Python and AI roles, so technical questions are strongest there.' },
 ]
@@ -96,8 +96,8 @@ export function Landing() {
             <a href="#how" className={buttonClasses('secondary', 'lg')}>See how it works</a>
           </div>
           <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-500">
-            <li className="flex items-center gap-1.5"><ShieldCheck className="size-4 text-emerald-600" aria-hidden /> Can run fully on your own computer</li>
-            <li className="flex items-center gap-1.5"><ShieldCheck className="size-4 text-emerald-600" aria-hidden /> No credit card</li>
+            <li className="flex items-center gap-1.5"><ShieldCheck className="size-4 text-emerald-600" aria-hidden /> Bring your preferred AI provider</li>
+            <li className="flex items-center gap-1.5"><ShieldCheck className="size-4 text-emerald-600" aria-hidden /> Open source</li>
             <li className="flex items-center gap-1.5"><ShieldCheck className="size-4 text-emerald-600" aria-hidden /> Delete your data any time</li>
           </ul>
         </div>
@@ -152,28 +152,28 @@ export function Landing() {
         </div>
       </section>
 
-      <Section id="privacy" eyebrow="Your data, your choice" title="Pick the AI that fits you" intro="Both options run the same interview and the same scoring. Switch any time in Settings.">
+      <Section id="privacy" eyebrow="Your data, your choice" title="Pick the AI that fits you" intro="Available options run the same interview and scoring workflow. Switch any time in Settings.">
         <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-card">
             <span className="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><LockKeyhole className="size-5" aria-hidden /></span>
-            <h3 className="mt-5 text-xl font-semibold text-slate-900">Local model</h3>
-            <p className="text-sm text-emerald-700">Free and private</p>
+            <h3 className="mt-5 text-xl font-semibold text-slate-900">Local AI, when enabled</h3>
+            <p className="text-sm text-emerald-700">Private processing on the host machine</p>
             <ul className="mt-4 space-y-2 text-sm text-slate-600">
               <li>Open-source models through Ollama</li>
-              <li>Your resume never leaves your computer</li>
+              <li>Documents stay on the machine hosting the application</li>
               <li>No account with any AI company, no key</li>
               <li>Slower on a laptop without a GPU</li>
             </ul>
           </div>
           <div className="rounded-2xl border border-brand-200 bg-gradient-to-b from-brand-50/60 to-white p-7 shadow-card">
             <span className="flex size-11 items-center justify-center rounded-xl bg-brand-100 text-brand-700"><BarChart3 className="size-5" aria-hidden /></span>
-            <h3 className="mt-5 text-xl font-semibold text-slate-900">Google Gemini</h3>
-            <p className="text-sm text-brand-700">Fast, with your own API key</p>
+            <h3 className="mt-5 text-xl font-semibold text-slate-900">Cloud AI providers</h3>
+            <p className="text-sm text-brand-700">Gemini, OpenAI, Anthropic or Azure OpenAI</p>
             <ul className="mt-4 space-y-2 text-sm text-slate-600">
               <li>Analysis in seconds, questions in a few</li>
-              <li>A free key works (with rate limits)</li>
+              <li>Use your own provider credentials</li>
               <li>Your key is stored encrypted and never shown again</li>
-              <li>Your documents are sent to Google</li>
+              <li>Relevant content is sent to the provider you select</li>
             </ul>
           </div>
         </div>

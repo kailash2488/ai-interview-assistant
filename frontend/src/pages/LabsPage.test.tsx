@@ -14,16 +14,16 @@ it('offers the browser sandbox while Python fails closed without a server runner
           max_code_chars: 20000,
           timeout_seconds: 8,
           detail:
-            'Python execution is disabled until an administrator configures the isolated runner.',
+            'JavaScript practice is ready now. Python practice will appear when it is enabled for this site.',
         }),
       )
     return new Response(JSON.stringify([]))
   }))
   render(<LabsPage />)
-  expect(await screen.findByText('Python runner unavailable')).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: 'JavaScript browser sandbox' })).toBeInTheDocument()
+  expect(await screen.findByText('Python is not available yet')).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'JavaScript coding practice' })).toBeInTheDocument()
   expect(screen.getByRole('button', { name: /Run JavaScript/ })).toBeEnabled()
-  expect(screen.getByRole('heading', { name: 'Optional server runner (Python)' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Python coding practice' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Practise for a specific company' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'Architecture portfolio' })).toBeInTheDocument()
   expect(screen.getByRole('button', { name: /Run safely/ })).toBeDisabled()

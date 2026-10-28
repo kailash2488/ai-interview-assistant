@@ -26,6 +26,8 @@ services:
       AIA_COOKIE_SECURE: ${COOKIE_SECURE:-false}     # set to true when serving over HTTPS
       AIA_CODE_RUNNER_URL: ${CODE_RUNNER_URL:-}
       AIA_CODE_RUNNER_TOKEN: ${CODE_RUNNER_TOKEN:-}
+      AIA_FEATURE_FLAGS: ${FEATURE_FLAGS:-[]}
+      AIA_AI_REQUESTS_PER_MINUTE: ${AI_REQUESTS_PER_MINUTE:-10}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

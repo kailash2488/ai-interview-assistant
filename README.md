@@ -365,22 +365,24 @@ Server settings come from environment variables prefixed `AIA_`, or from `backen
 | `AIA_CODE_RUNNER_TOKEN` | none | Shared secret used only between the API and isolated runner |
 | `AIA_CODE_RUNNER_TIMEOUT_SECONDS` | `8` | Maximum wall-clock request time for a code execution |
 | `AIA_CODE_MAX_CHARS` | `20000` | Maximum source-code submission size |
+| `AIA_FEATURE_FLAGS` | `[]` | JSON list of completed roadmap features to enable; keep empty through Phase 8 |
+| `AIA_AI_REQUESTS_PER_MINUTE` | `10` | Shared per-user/task request ceiling for future AI-generation endpoints |
 | `AIA_DATABASE_URL` | `sqlite:///backend/data/app.db` | Database location |
 | `AIA_UPLOAD_DIR` | `backend/uploads` | Uploaded files |
 | `AIA_QDRANT_PATH` | `backend/data/qdrant` | Document search index |
 | `AIA_CORS_ORIGINS` | the two `localhost:5173` addresses | JSON list, only needed if a page on another address calls the API directly |
 
-Docker Compose reads these shell variables: `APP_PORT` (default 8080), `ALLOW_SIGNUP`, `COOKIE_SECURE`, `OLLAMA_URL`, `INSTALL_VOICE`. Frontend (from source): `VITE_BACKEND_URL` (where the dev server forwards `/api`, default `http://localhost:8000`).
+Docker Compose reads these shell variables: `APP_PORT` (default 8080), `ALLOW_SIGNUP`, `COOKIE_SECURE`, `OLLAMA_URL`, `INSTALL_VOICE`, `FEATURE_FLAGS` and `AI_REQUESTS_PER_MINUTE`. Frontend (from source): `VITE_BACKEND_URL` (where the dev server forwards `/api`, default `http://localhost:8000`).
 
 ## Tests and developer tools
 
 ```bash
 # backend (from backend/, virtual environment active)
-pytest                                  # about 290 tests
+pytest                                  # about 330 tests
 pytest --cov=app                        # with coverage (about 97%)
 
 # frontend (from frontend/)
-npm test                                # 150 tests
+npm test                                # about 160 tests
 npm run lint                            # oxlint
 npm run build                           # type-check and production build
 ```
@@ -396,6 +398,7 @@ Helper scripts (from `backend/`, virtual environment active):
 | `python scripts/calibrate.py` | Checks the evaluator ranks hand-labelled strong, average and weak answers correctly |
 | `python scripts/reset_password.py EMAIL` | Resets an account's password |
 | `python scripts/download_voice.py` | Downloads the voice models |
+| `python scripts/verify_backup.py PATH.db` | Verifies a SQLite schema-backup file and prints table row counts without modifying it |
 
 ## Where your data lives, backups and reset
 
@@ -481,7 +484,7 @@ Limitations:
 - Scanned PDFs are not supported (no OCR).
 - Long jobs run as background tasks inside the API process. If you restart the backend during an analysis or report, start it again from the app. Run a single backend process, because login throttling and background jobs live in memory.
 
-Phase 7 is available from **Practice lab**: private company-specific question banks, a system-design portfolio with validated diagram uploads and AI reasoning review, and an out-of-the-box JavaScript browser sandbox. JavaScript runs in a disposable Web Worker and never reaches the server. Python activates through the included optional gVisor runner; the application server never executes submitted code. See the [runner deployment and security guide](docs/CODE_RUNNER_SECURITY.md) before starting it with the `code-runner` Compose profile. See [docs/SOP.pdf](docs/SOP.pdf).
+Phase 7 is available from **Practice lab**: private company-specific question banks, a system-design portfolio with validated diagram uploads and AI reasoning review, and an out-of-the-box JavaScript browser sandbox. JavaScript runs in a disposable Web Worker and never reaches the server. Python activates through the included optional gVisor runner; the application server never executes submitted code. See the [runner deployment and security guide](docs/CODE_RUNNER_SECURITY.md) before starting it with the `code-runner` Compose profile. The historical project baseline is in [docs/SOP.pdf](docs/SOP.pdf); planned Phases 8–18 are defined in the [Job Seeker Platform roadmap](docs/JOB_SEEKER_ROADMAP.md).
 
 ## Licence
 

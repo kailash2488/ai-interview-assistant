@@ -8,6 +8,7 @@ from sqlalchemy import Engine, inspect, text
 
 log = logging.getLogger(__name__)
 MAX_SCHEMA_BACKUPS = 5
+CURRENT_SCHEMA_VERSION = 8
 
 # table -> [(column, DDL fragment)]
 NEW_COLUMNS: dict[str, list[tuple[str, str]]] = {
@@ -82,13 +83,20 @@ def backup_before_new_tables(engine: Engine, expected_tables: set[str]) -> None:
 
 def upgrade(engine: Engine) -> None:
     pending = _pending_columns(engine)
-    if not pending:
-        return
-    _backup_sqlite(engine)
-    tables = set(inspect(engine).get_table_names())
-    with engine.begin() as conn:
-        for table, name, ddl in pending:
-            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
-        if "sessions" in tables:
-            for statement in INDEXES:
-                conn.execute(text(statement))
+    if pending:
+        _backup_sqlite(engine)
+        tables = set(inspect(engine).get_table_names())
+        with engine.begin() as conn:
+            for table, name, ddl in pending:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
+            if "sessions" in tables:
+                for statement in INDEXES:
+                    conn.execute(text(statement))
+    if "platform_metadata" in set(inspect(engine).get_table_names()):
+        with engine.begin() as conn:
+            conn.execute(text(
+                "INSERT INTO platform_metadata (key, value, updated_at) VALUES "
+                "('schema_version', :version, CURRENT_TIMESTAMP) "
+                "ON CONFLICT(key) DO UPDATE SET value=:version, updated_at=CURRENT_TIMESTAMP "
+                "WHERE platform_metadata.value <> :version"
+            ), {"version": str(CURRENT_SCHEMA_VERSION)})
